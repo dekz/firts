@@ -1,3 +1,5 @@
+require 'openssl'
+
 class Utils
   def self.random_str(len=15)
     str = ""

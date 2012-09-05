@@ -25,4 +25,14 @@ def clear_jobs
   stopped
 end
 
+def completed_jobs
+  stopped = []
+  stop = $ts.take([:job, :done, nil, nil], 0) rescue nil
+  while !stop.nil?
+    stopped << stop
+    stop = $ts.take([:job, :done, nil, nil], 0) rescue nil
+  end
+  stopped
+end
+
 pry
