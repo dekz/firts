@@ -63,7 +63,6 @@ class Worker
 
   def grab_job
     begin
-      #jt = { 'job' => :start, 'id' => String }
       jt = Job::START_TEMPLATE.dup
       job = take jt, 0, false
       job = Job.load job
@@ -75,7 +74,6 @@ class Worker
     jc = Job::COMPLETE_TEMPLATE.dup
     jc['id'] = job.id
     jc['result'] = results
-    puts jc
     ts.write jc
   end
 end
