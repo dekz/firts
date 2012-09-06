@@ -3,29 +3,7 @@ require 'rinda/tuplespace'
 require 'rinda/ring'
 require 'timeout'
 require './utils.rb'
-
-class JobExists < Exception; end
-
-Job = Struct.new(:id) do
-  def to_s; @id; end
-  def ==(j); j.id == id; end
-  def self.load job
-    j = Job.new job['id']
-    j
-  end
-end
-
-def repeat_every(interval)
-  Thread.new do
-    loop do
-      start_time = Time.now
-      yield
-      elapsed = Time.now - start_time
-      sleep([interval - elapsed, 0].max)
-    end
-  end
-end
-
+require './job.rb'
 class Worker
   attr_accessor :ts, :current_jobs, :running, :uri, :name
   def initialize(uri='druby://:12345')
@@ -41,9 +19,7 @@ class Worker
   def connect
     @ts = Rinda::RingFinger.primary
     puts "#{@name} connected to #{@ts.to_s}"
-    repeat_every 30 do
-      heartbeat
-    end
+    Utils::repeat_every(30 ) { heartbeat }
   end
 
   def heartbeat
@@ -54,9 +30,26 @@ class Worker
   end
 
   def job_stopped? job_id
-    st = { 'job' => :stop, 'id' => job_id }
-    stop = ts.read(st, 0) rescue nil
+    st = Job::STOP_TEMPLATE.dup
+    st['id'] = job_id
+    stop = read st
     !stop.nil?
+  end
+
+  def read template, timeout=0, rescue_me = true
+    if rescue_me 
+      @ts.read(template, timeout) rescue nil
+    else
+      @ts.read(template, timeout)
+    end
+  end
+
+  def take template, timeout=0, rescue_me = true
+    if rescue_me
+      @ts.take(template, timeout) rescue nil
+    else
+      @ts.take(template, timeout)
+    end
   end
 
   def get_job
@@ -70,17 +63,20 @@ class Worker
 
   def grab_job
     begin
-      jt = { 'job' => :start, 'id' => String }
-      job = ts.take(jt,  0)
+      #jt = { 'job' => :start, 'id' => String }
+      jt = Job::START_TEMPLATE.dup
+      job = take jt, 0, false
       job = Job.load job
     rescue Rinda::RequestExpiredError
     end
   end
 
   def job_done job, results
-    jt = { 'job' => :complete, 'id' => job.id, 'result' => results }
-    puts jt
-    ts.write jt
+    jc = Job::COMPLETE_TEMPLATE.dup
+    jc['id'] = job.id
+    jc['result'] = results
+    puts jc
+    ts.write jc
   end
 end
 
@@ -112,6 +108,7 @@ end
             puts "#{worker.name}: Run #{job.id}"
             loop do
               counter += 1
+              job.prc.call if job.prc
             end
           end
         rescue Timeout::Error

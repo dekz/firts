@@ -1,8 +1,9 @@
 require 'pry'
 require 'drb'
 require 'openssl'
-require './utils.rb'
 require 'rinda/ring'
+require './utils.rb'
+require './job.rb'
 
 DRb.start_service
 #$ts = DRbObject.new_with_uri('druby://:12345')
@@ -17,21 +18,26 @@ puts 'Looking for Finger broadcast'
 #end
 p $ts
 
-job = { 'job' => :start, 'id' => Utils::random_str(15) }
-job2 = { 'job' => :start, 'id' => Utils::random_str(15) }
-stop_job = { 'job' => :stop, 'id' => job['id'] }
-stop_job2 = { 'job' => :stop, 'id' => job2['id'] }
+job = Job::START_TEMPLATE
+job['id'] = Utils::random_str
+job2 = Job::START_TEMPLATE
+job2['id'] = Utils::random_str
+
+stop_job = Job::STOP_TEMPLATE
+stop_job['id'] = job['id']
+stop_job2 = Job::STOP_TEMPLATE
+stop_job2['id'] = job2['id']
 
 def clear_jobs
   stopped = []
-  st = { 'job' => :stop, 'id' => nil }
+  st = Job::STOP_TEMPLATE
   stop = $ts.take(st, 0) rescue nil
   while !stop.nil?
     stopped << stop
     stop = $ts.take(st, 0) rescue nil
   end
 
-  jt = { 'job' => :start, 'id' => nil }
+  jt = Job::START_TEMPLATE
   stop = $ts.take(jt, 0) rescue nil
   while !stop.nil?
     stopped << stop
@@ -40,24 +46,34 @@ def clear_jobs
   stopped
 end
 
-def completed_jobs
+def completed_jobs timeout=0
   stopped = []
-  while stop = jobs_complete?
+  while stop = jobs_complete?(1, timeout)
     stopped << stop
   end
   stopped
 end
 
-def jobs_complete? num=1, timeout=30
-  completed = []
+def jobs_complete? num=1, timeout=10
+  completed = nil
   num.times do 
-    jt = { 'job' => :complete, 'id' => nil, 'result' => nil }
-    puts jt
+    jt = Job::COMPLETE_TEMPLATE
     job =  $ts.take(jt, timeout) rescue nil
     return completed unless job
+    completed ||= []
     completed << job
   end
   completed
 end
 
-pry
+def run_job &block
+  require 'sourcify'
+  block_string = block.to_source
+  jt = Job::START_TEMPLATE.dup
+  jt['proc'] = block_string
+  $ts.write jt
+  p jt
+end
+
+require 'irb'
+IRB.start
