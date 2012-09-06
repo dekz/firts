@@ -2,9 +2,21 @@ require 'pry'
 require 'drb'
 require 'openssl'
 require './utils.rb'
+require 'rinda/ring'
 
 DRb.start_service
-$ts = DRbObject.new_with_uri('druby://:12345')
+#$ts = DRbObject.new_with_uri('druby://:12345')
+$ts = Rinda::RingFinger.primary
+#finger = Rinda::RingFinger.new(['<broadcast>', 'localhost'])
+puts 'Looking for Finger broadcast'
+#finger = Rinda::RingFinger.new(['<broadcast>', 'localhost'])
+#$ts = nil
+#finger.lookup_ring do |a|
+#  $ts = a
+#  puts 'Found finger broadcast ' + $ts.inspect
+#end
+p $ts
+
 job = { 'job' => :start, 'id' => Utils::random_str(15) }
 job2 = { 'job' => :start, 'id' => Utils::random_str(15) }
 stop_job = { 'job' => :stop, 'id' => job['id'] }

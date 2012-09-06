@@ -1,5 +1,6 @@
 require 'drb'
 require 'rinda/tuplespace'
+require 'rinda/ring'
 require 'timeout'
 require './utils.rb'
 
@@ -14,22 +15,42 @@ Job = Struct.new(:id) do
   end
 end
 
-class Worker
+def repeat_every(interval)
+  Thread.new do
+    loop do
+      start_time = Time.now
+      yield
+      elapsed = Time.now - start_time
+      sleep([interval - elapsed, 0].max)
+    end
+  end
+end
 
+class Worker
   attr_accessor :ts, :current_jobs, :running, :uri, :name
   def initialize(uri='druby://:12345')
     @uri = uri
     @current_jobs = []
     @running = true
     @name = "worker::#{Utils.random_str}"
+
+    DRb.start_service
     connect
   end
 
   def connect
-    DRb.stop_service
-    @ts = DRbObject.new_with_uri(@uri)
-    DRb.start_service
-    puts "#{name} connected to #{@uri}"
+    @ts = Rinda::RingFinger.primary
+    puts "#{@name} connected to #{@ts.to_s}"
+    repeat_every 30 do
+      heartbeat
+    end
+  end
+
+  def heartbeat
+    # Let others know we're around
+    me = [:name, :worker, name]
+    @heartbeat_entry ||= @ts.write(me, 30)
+    @heartbeat_entry.renew(31) unless @heartbeat_entry.canceled?
   end
 
   def job_stopped? job_id
@@ -67,7 +88,9 @@ end
 #  fork do
     worker = Worker.new
     File.write("#{worker.name}.pid", Process.pid)
+
     while worker.running do
+      sleep(0.1)
       worker.current_jobs.each do |job|
         if worker.job_stopped? job.id
           puts "#{worker.name}: Stop #{job.id}"
