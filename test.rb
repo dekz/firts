@@ -5,34 +5,47 @@ require './utils.rb'
 
 DRb.start_service
 $ts = DRbObject.new_with_uri('druby://:12345')
-job = [:job, Utils::random_str(15)]
-job2 = [:job, Utils::random_str(15)]
-stop_job = [:stop, job[1]]
-stop_job2 = [:stop, job2[1]]
+job = { 'job' => :start, 'id' => Utils::random_str(15) }
+job2 = { 'job' => :start, 'id' => Utils::random_str(15) }
+stop_job = { 'job' => :stop, 'id' => job['id'] }
+stop_job2 = { 'job' => :stop, 'id' => job2['id'] }
 
 def clear_jobs
   stopped = []
-  stop = $ts.take([:stop, nil], 0) rescue nil
+  st = { 'job' => :stop, 'id' => nil }
+  stop = $ts.take(st, 0) rescue nil
   while !stop.nil?
     stopped << stop
-    stop = $ts.take([:stop, nil], 0) rescue nil
+    stop = $ts.take(st, 0) rescue nil
   end
-  stop = $ts.take([:job, nil], 0) rescue nil
+
+  jt = { 'job' => :start, 'id' => nil }
+  stop = $ts.take(jt, 0) rescue nil
   while !stop.nil?
     stopped << stop
-    stop = $ts.take([:job, nil], 0) rescue nil
+    stop = $ts.take(jt, 0) rescue nil
   end
   stopped
 end
 
 def completed_jobs
   stopped = []
-  stop = $ts.take([:job, :done, nil, nil], 0) rescue nil
-  while !stop.nil?
+  while stop = jobs_complete?
     stopped << stop
-    stop = $ts.take([:job, :done, nil, nil], 0) rescue nil
   end
   stopped
+end
+
+def jobs_complete? num=1, timeout=30
+  completed = []
+  num.times do 
+    jt = { 'job' => :complete, 'id' => nil, 'result' => nil }
+    puts jt
+    job =  $ts.take(jt, timeout) rescue nil
+    return completed unless job
+    completed << job
+  end
+  completed
 end
 
 pry
