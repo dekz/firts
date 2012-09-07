@@ -4,13 +4,13 @@ Distributed workers with Tuplespace. Send jobs as procs with arguments (no scope
 
 ## Example
 
-   # Do these 3 commands in separate terminals, they block.
-   # Start a TupleSpace for everyone to communicate through
-   rake ts
-   # Start a worker
-   rake worker
-   # Start a Taskmaster
-   rake taskmaster
+    # Do these 3 commands in separate terminals, they block.
+    # Start a TupleSpace for everyone to communicate through
+    rake ts
+    # Start a worker
+    rake worker
+    # Start a Taskmaster
+    rake taskmaster
 
 Send a remote worker a job:
 
