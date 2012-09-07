@@ -1,5 +1,6 @@
 source "http://rubygems.org"
 gem 'sourcify'
+gem 'thor'
 
 group :development do
   gem "shoulda", ">= 0"
