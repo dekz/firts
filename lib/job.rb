@@ -30,14 +30,14 @@ class Job
   def run_proc
     return if @run_task.nil?
     begin
-    prc = eval @run_task['proc'] 
-    args = []
-    if @run_task['args'].class == DRb::DRbObject
-      @run_task['args'].each { |t| args << t }
-    else
-      args = @run_task['args']
-    end
-    prc.call args
+      prc = eval @run_task['proc'] 
+      args = []
+      if @run_task['args'].class == DRb::DRbObject
+        @run_task['args'].each { |t| args << t }
+      else
+        args = *@run_task['args']
+      end
+      prc.call *args
     rescue NameError => e
       puts e
     end

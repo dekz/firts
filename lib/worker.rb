@@ -67,7 +67,6 @@ class Worker
     begin
       jt = Job::START_TEMPLATE.dup
       job = take jt, 0, false
-      p job
       job = Job.load job
     rescue Rinda::RequestExpiredError
     end
