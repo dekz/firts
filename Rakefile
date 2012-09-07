@@ -17,8 +17,8 @@ Jeweler::Tasks.new do |gem|
   gem.name = "firts"
   gem.homepage = "http://github.com/dekz/firts"
   gem.license = "MIT"
-  gem.summary = %Q{TODO: distributed workers with tuplespace}
-  gem.description = %Q{TODO: Execute jobs on remote distributed machines}
+  gem.summary = %Q{distributed workers with tuplespace}
+  gem.description = %Q{Execute jobs on remote distributed machines}
   gem.email = "jacob@dekz.net"
   gem.authors = ["Jacob Evans"]
   # dependencies defined in Gemfile
