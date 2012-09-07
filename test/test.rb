@@ -2,6 +2,8 @@ require 'pry'
 require 'drb'
 require 'openssl'
 require 'rinda/ring'
+require 'irb'
+require 'irb/completion'
 $:.unshift File.expand_path(File.join(File.dirname(__FILE__), '../lib'))
 require 'firts'
 
@@ -30,5 +32,4 @@ stop_job2['id'] = job2['id']
 
 $tm = Taskmaster.new $ts
 
-require 'irb'
 IRB.start
