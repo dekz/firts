@@ -1,6 +1,6 @@
 = firts
 
-Description goes here.
+Distributed workers with Tuplespace. Send jobs as procs with arguments (no scope plz).
 
 == Contributing to firts
  
