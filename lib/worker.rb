@@ -1,30 +1,32 @@
 require 'drb'
 require 'rinda/tuplespace'
 require 'rinda/ring'
-require 'timeout'
-require './utils.rb'
-require './job.rb'
+require 'utils'
+require 'job'
+
 class Worker
-  attr_accessor :ts, :current_jobs, :running, :uri, :name
-  def initialize(uri='druby://:12345')
-    @uri = uri
+  attr_accessor :ts, :current_jobs, :running, :name
+  WORKER_TEMPLATE = [:name, :worker, String]
+  def initialize(ts=nil)
     @current_jobs = []
     @running = true
     @name = "worker::#{Utils.random_str}"
-
     DRb.start_service
+    @ts = ts
     connect
   end
 
   def connect
-    @ts = Rinda::RingFinger.primary
+    @ts = Rinda::RingFinger.primary unless @ts
     puts "#{@name} connected to #{@ts.to_s}"
-    Utils::repeat_every(30 ) { heartbeat }
+    Utils::repeat_every(30) { heartbeat }
   end
 
   def heartbeat
     # Let others know we're around
-    me = [:name, :worker, name]
+    #me = [:name, :worker, name]
+    me = WORKER_TEMPLATE.dup
+    me[2] = name
     @heartbeat_entry ||= @ts.write(me, 30)
     @heartbeat_entry.renew(31) unless @heartbeat_entry.canceled?
   end
@@ -65,6 +67,7 @@ class Worker
     begin
       jt = Job::START_TEMPLATE.dup
       job = take jt, 0, false
+      p job
       job = Job.load job
     rescue Rinda::RequestExpiredError
     end
@@ -77,46 +80,3 @@ class Worker
     ts.write jc
   end
 end
-
-#1.times do
-#  fork do
-    worker = Worker.new
-    File.write("#{worker.name}.pid", Process.pid)
-
-    while worker.running do
-      sleep(0.1)
-      worker.current_jobs.each do |job|
-        if worker.job_stopped? job.id
-          puts "#{worker.name}: Stop #{job.id}"
-          worker.current_jobs.delete job
-        end
-      end
-
-      worker.get_job do |job|
-        if worker.job_stopped? job.id
-          puts "Err: Job stopped before processed" 
-          next
-        end
-
-        worker.current_jobs << job
-        t0 = Time.now.to_r
-        counter = 0
-        begin
-          Timeout::timeout(1) do
-            puts "#{worker.name}: Run #{job.id}"
-            loop do
-              counter += 1
-              job.prc.call if job.prc
-            end
-          end
-        rescue Timeout::Error
-        end
-        puts "#{worker.name}: Done #{counter}"
-        t1 = Time.now.to_r
-        result = { :began => t0, :end => t1, :msg => 'yay' }
-        worker.job_done job, result
-        worker.current_jobs.delete job
-      end
-    end
-#  end
-#end

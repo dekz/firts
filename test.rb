@@ -2,8 +2,9 @@ require 'pry'
 require 'drb'
 require 'openssl'
 require 'rinda/ring'
-require './utils.rb'
-require './job.rb'
+$:.unshift File.expand_path(File.join(File.dirname(__FILE__), 'lib'))
+require 'utils'
+require 'job'
 
 DRb.start_service
 #$ts = DRbObject.new_with_uri('druby://:12345')
@@ -66,13 +67,16 @@ def jobs_complete? num=1, timeout=10
   completed
 end
 
-def run_job &block
+def run_job *args, &block
   require 'sourcify'
   block_string = block.to_source
   jt = Job::START_TEMPLATE.dup
-  jt['proc'] = block_string
-  $ts.write jt
+  jt['run'] = {
+    'proc' => block_string,
+    'args' => args
+  }
   p jt
+  $ts.write jt
 end
 
 require 'irb'
