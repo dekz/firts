@@ -17,6 +17,9 @@ Remote worker will pickup the job and you should see:
     Hi there Jacob
     worker::CemHb15DCBzY7Zo: Done 0
 
+## Overview
+Workers listen on TupleSpace for Jobs sent out by Taskmasters. It pulls a job from the list and runs it, posting back to TupleSpace when it's done. You can send over a proc with `Taskmaster#run_job` and pass in args to the proc which will be either Marshalled over to the remote worker or a Reference will be sent when it cannot be marshalled (Files etc).
+
 ## Contributing to firts
  
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet.
