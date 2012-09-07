@@ -2,10 +2,8 @@ require 'pry'
 require 'drb'
 require 'openssl'
 require 'rinda/ring'
-$:.unshift File.expand_path(File.join(File.dirname(__FILE__), 'lib'))
-require 'utils'
-require 'job'
-require 'taskmaster'
+$:.unshift File.expand_path(File.join(File.dirname(__FILE__), '../lib'))
+require 'firts'
 
 DRb.start_service
 #$ts = DRbObject.new_with_uri('druby://:12345')

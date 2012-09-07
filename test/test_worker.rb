@@ -1,5 +1,5 @@
-$:.unshift File.expand_path(File.join(File.dirname(__FILE__), 'lib'))
-require 'worker'
+$:.unshift File.expand_path(File.join(File.dirname(__FILE__), '../lib'))
+require 'firts'
 require 'timeout'
 require 'rinda/ring'
 
@@ -36,7 +36,7 @@ while worker.running do
     end
     puts "#{worker.name}: Done #{counter}"
     t1 = Time.now.to_r
-    result = { :began => t0, :end => t1, :msg => 'yay' }
+    result = { :began => t0, :end => t1, :worker => worker.name }
     worker.job_done job, result
     worker.current_jobs.delete job
   end

@@ -24,7 +24,6 @@ class Worker
 
   def heartbeat
     # Let others know we're around
-    #me = [:name, :worker, name]
     me = WORKER_TEMPLATE.dup
     me[2] = name
     @heartbeat_entry ||= @ts.write(me, 30)
@@ -38,7 +37,7 @@ class Worker
     !stop.nil?
   end
 
-  def read template, timeout=0, rescue_me = true
+  def read template, timeout=0, rescue_me=true
     if rescue_me 
       @ts.read(template, timeout) rescue nil
     else
@@ -46,7 +45,7 @@ class Worker
     end
   end
 
-  def take template, timeout=0, rescue_me = true
+  def take template, timeout=0, rescue_me=true
     if rescue_me
       @ts.take(template, timeout) rescue nil
     else

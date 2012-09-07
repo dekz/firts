@@ -2,6 +2,7 @@ require 'drb'
 require 'rinda/ring'
 require 'utils'
 require 'job'
+require 'worker'
 
 # Avengers Ahoy!
 class Taskmaster
@@ -66,5 +67,10 @@ class Taskmaster
       completed << job
     end
     completed
+  end
+  
+  def workers
+    wt = Worker::WORKER_TEMPLATE 
+    @ts.read_all(wt) rescue nil
   end
 end
