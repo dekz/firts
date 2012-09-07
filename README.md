@@ -2,6 +2,21 @@
 
 Distributed workers with Tuplespace. Send jobs as procs with arguments (no scope plz).
 
+## Example
+Send a remote worker a job:
+
+    tm = Taskmaster.new
+    tm.run_job('Jacob') do |name|
+      puts "Hi there #{name}"
+    end
+
+Remote worker will pickup the job and you should see:
+
+    worker::CemHb15DCBzY7Zo connected to #<Rinda::TupleSpace:0x007fe74c82c658>
+    worker::CemHb15DCBzY7Zo: Run u1gADFHDXWH2SvJ
+    Hi there Jacob
+    worker::CemHb15DCBzY7Zo: Done 0
+
 ## Contributing to firts
  
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet.
