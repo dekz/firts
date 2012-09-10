@@ -1,6 +1,7 @@
 require 'rinda/ring'
-require 'ringnotify'
 $:.unshift File.expand_path(File.join(File.dirname(__FILE__), '../lib'))
+require 'job'
+require 'ringnotify'
 
 class Watcher
   attr_accessor :ts, :patterns, :watchers
@@ -19,7 +20,6 @@ class Watcher
     @watchers = []
     patterns.each do |pattern|
       t = Thread.new do
-        p ts
         ns = RingNotify.new(ts, pattern)
         ns.each do |tuple|
           p tuple

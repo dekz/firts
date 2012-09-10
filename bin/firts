@@ -36,15 +36,16 @@ class FirtsApp < Thor
   def watcher
     opts = options.dup
     opts[:server] = options[:ts] if options[:ts]
-    p opts
     ts = Utils::find_tuplespace opts
-    raise "Unable to find TupleSpace" unless ts
+    raise 'Unable to find TupleSpace' unless ts
     watcher = Watcher.new ts
     watcher.watch
   end
 
   desc 'ts [CONFIG]', 'Start a TupleSpace'
+  method_option :ts, :type => :string, :aliases => '-t', :desc => 'TupleSpace location'
   def ts(config=nil)
+    ts = TupleServer.new options[:ts]
   end
 end
 
