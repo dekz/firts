@@ -31,5 +31,28 @@ stop_job2 = Job::STOP_TEMPLATE
 stop_job2['id'] = job2['id']
 
 $tm = Taskmaster.new $ts
+def tm
+  $tm
+end
 
+def workers
+  puts "Workers:"
+  workers = []
+  tm.workers.map do |w|
+    workers << w[2]
+    puts w[2]
+  end
+  workers
+end
+
+def json_job
+  a = Proc.new do |arg|
+    require 'json'
+    puts arg.to_json
+  end
+end
+
+puts "Taskmaster console"
+ARGV.clear
 IRB.start
+#binding.pry
