@@ -41,7 +41,7 @@ Gem::Specification.new do |s|
     "test/test_worker.rb"
   ]
   s.homepage = "http://github.com/dekz/firts"
-  s.licenses = ["MIT"]
+  s.licenses = ["Modified BSD License"]
   s.require_paths = ["lib"]
   s.rubygems_version = "1.8.23"
   s.summary = "distributed workers with tuplespace"

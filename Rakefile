@@ -16,7 +16,7 @@ Jeweler::Tasks.new do |gem|
   # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
   gem.name = "firts"
   gem.homepage = "http://github.com/dekz/firts"
-  gem.license = "MIT"
+  gem.license = "Modified BSD License"
   gem.summary = %Q{distributed workers with tuplespace}
   gem.description = %Q{Execute jobs on remote distributed machines}
   gem.email = "jacob@dekz.net"
