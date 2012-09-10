@@ -9,42 +9,36 @@ class FirtsApp < Thor
 
   desc 'worker [CONFIG]', 'Start a simple worker'
   method_option :ts, :type => :string, :aliases => '-t', :desc => 'TupleSpace location'
-  def worker(config=nil)
+  def worker(config={})
     opts = options.dup
     opts[:server] = options[:ts] if options[:ts]
-    ts = Utils::find_tuplespace opts
-    raise "Unable to find TupleSpace" unless ts
-    runner = WorkerRunner.new ts
+    runner = WorkerRunner.new opts
     runner.run
   end
 
   desc 'taskmaster [CONFIG]', 'Start a taskmaster'
   method_option :ts, :type => :string, :aliases => '-t', :desc => 'TupleSpace location'
-  def taskmaster(config=nil)
+  def taskmaster(config={})
     require 'irb'
     opts = options.dup
     opts[:server] = options[:ts] if options[:ts]
-    ts = Utils::find_tuplespace opts
-    raise "Unable to find TupleSpace" unless ts
-    $tm = Taskmaster.new ts
+    $tm = Taskmaster.new opts
     ARGV.clear
     ::IRB.start
   end
 
   desc 'watcher', 'Start a watcher'
   method_option :ts, :type => :string, :aliases => '-t', :desc => 'TupleSpace location'
-  def watcher
+  def watcher(config={})
     opts = options.dup
     opts[:server] = options[:ts] if options[:ts]
-    ts = Utils::find_tuplespace opts
-    raise 'Unable to find TupleSpace' unless ts
-    watcher = Watcher.new ts
+    watcher = Watcher.new opts
     watcher.watch
   end
 
   desc 'ts [CONFIG]', 'Start a TupleSpace'
   method_option :ts, :type => :string, :aliases => '-t', :desc => 'TupleSpace location'
-  def ts(config=nil)
+  def ts(config={})
     ts = TupleServer.new options[:ts]
   end
 end
