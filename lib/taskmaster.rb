@@ -6,12 +6,15 @@ require 'worker'
 
 # Avengers Ahoy!
 class Taskmaster
-  def initialize(ts=nil)
-    @ts = ts
-    if ts.nil?
+  attr_accessor :ts
+  def initialize(opts = {})
+    drb_init
+    @ts = Utils::find_tuplespace opts
+    raise "Unable to find TupleSpace" unless @ts
+  end
+
+  def drb_init
       DRb.start_service
-      @ts = Rinda::RingFinger.primary
-    end
   end
 
   ##

@@ -5,14 +5,20 @@ require 'ringnotify'
 
 class Watcher
   attr_accessor :ts, :patterns, :watchers
-  def initialize ts
-    @ts = ts
+  def initialize(opts = {})
+    drb_init
+    @ts = Utils::find_tuplespace opts
+    raise "Unable to find TupleSpace" unless @ts
     @patterns = [
       [:name, :worker, String],
       Job::START_TEMPLATE,
       Job::STOP_TEMPLATE,
       Job::COMPLETE_TEMPLATE,
     ]
+  end
+
+  def drb_init
+      DRb.start_service
   end
 
   def watch

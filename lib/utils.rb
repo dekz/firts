@@ -29,17 +29,16 @@ class Utils
     # todo move this out
     require 'drb'
     require 'rinda/ring'
-    DRb.start_service
-    ts = Rinda::RingFinger.primary
-    lookup = ['<broadcast>', 'localhost']
-    server = opts["server"]
+    #DRb.current_server rescue DRb.start_service
+    server = opts["server"] if opts
+    ts = nil
     if server
-      lookup << server
-    end
-    finger = Rinda::RingFinger.new(lookup)
-    ts = finger.primary
-    if ts.nil?
       ts = DRbObject.new_with_uri(server)
+    else
+      ts = Rinda::RingFinger.primary
+      lookup = ['<broadcast>', 'localhost']
+      finger = Rinda::RingFinger.new(lookup)
+      ts = finger.primary
     end
     raise "Couldn't find TS" unless ts
     ts
