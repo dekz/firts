@@ -43,19 +43,3 @@ Rake::RDocTask.new do |rdoc|
   rdoc.rdoc_files.include('README*')
   rdoc.rdoc_files.include('lib/**/*.rb')
 end
-
-desc "Start a single worker"
-task :worker do
-  load 'test/test_worker.rb'
-end
-
-desc "Start a TupleSpace for everyone to work in"
-task :ts do
-  load 'lib/ts.rb'
-end
-
-desc "Start a taskmaster and pop open a IRB session"
-task :taskmaster do
-  #load 'test/test.rb'
-  sh "irb -I test -r test.rb"
-end
