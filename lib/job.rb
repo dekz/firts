@@ -20,7 +20,8 @@ class Job
   end
 
   def ==(j)
-    j.id == id
+    return j.id == id if self.class == j.class
+    super
   end
 
   def self.load job
@@ -39,6 +40,8 @@ class Job
       end
       prc.call *args
     rescue NameError => e
+      puts e
+    rescue Exception => e
       puts e
     end
   end

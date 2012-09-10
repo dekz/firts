@@ -24,4 +24,24 @@ class Utils
     end
     return str
   end
+
+  def self.find_tuplespace opts
+    # todo move this out
+    require 'drb'
+    require 'rinda/ring'
+    DRb.start_service
+    ts = Rinda::RingFinger.primary
+    lookup = ['<broadcast>', 'localhost']
+    server = opts["server"]
+    if server
+      lookup << server
+    end
+    finger = Rinda::RingFinger.new(lookup)
+    ts = finger.primary
+    if ts.nil?
+      ts = DRbObject.new_with_uri(server)
+    end
+    raise "Couldn't find TS" unless ts
+    ts
+  end
 end
