@@ -1,0 +1,51 @@
+#!/usr/bin/env ruby
+require 'thor'
+$:.unshift File.expand_path(File.join(File.dirname(__FILE__), '../lib'))
+require 'firts'
+
+class FirtsApp < Thor
+  map '-v' => 'version'
+  map '--version' => 'version'
+
+  desc 'worker [CONFIG]', 'Start a simple worker'
+  method_option :ts, :type => :string, :aliases => '-t', :desc => 'TupleSpace location'
+  def worker(config=nil)
+    opts = options.dup
+    opts[:server] = options[:ts] if options[:ts]
+    ts = Utils::find_tuplespace opts
+    raise "Unable to find TupleSpace" unless ts
+    runner = WorkerRunner.new ts
+    runner.run
+  end
+
+  desc 'taskmaster [CONFIG]', 'Start a taskmaster'
+  method_option :ts, :type => :string, :aliases => '-t', :desc => 'TupleSpace location'
+  def taskmaster(config=nil)
+    require 'irb'
+    opts = options.dup
+    opts[:server] = options[:ts] if options[:ts]
+    ts = Utils::find_tuplespace opts
+    raise "Unable to find TupleSpace" unless ts
+    $tm = Taskmaster.new ts
+    ARGV.clear
+    ::IRB.start
+  end
+
+  desc 'watcher', 'Start a watcher'
+  method_option :ts, :type => :string, :aliases => '-t', :desc => 'TupleSpace location'
+  def watcher
+    opts = options.dup
+    opts[:server] = options[:ts] if options[:ts]
+    p opts
+    ts = Utils::find_tuplespace opts
+    raise "Unable to find TupleSpace" unless ts
+    watcher = Watcher.new ts
+    watcher.watch
+  end
+
+  desc 'ts [CONFIG]', 'Start a TupleSpace'
+  def ts(config=nil)
+  end
+end
+
+FirtsApp.start
