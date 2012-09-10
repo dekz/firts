@@ -21,6 +21,7 @@ class Worker
     @job_exec_timeout = opts[:job_exec_timeout] || 300
     @job_search_timeout = opts[:job_search_timeout] || 0.1
     @heartbeat_refresh = opts[:heartbeat] || 30
+    @threads = []
   end
 
   def drb_init
@@ -64,7 +65,7 @@ class Worker
     st['id'] = job_id
     stop = read st
     if stop
-      puts "Told to stop job #{job.id}"
+      puts "#{name}: Asked to stop #{@current_job.id}"
       @current_job = nil
     end
     !stop.nil?
@@ -89,13 +90,21 @@ class Worker
   def start_a_job
     get_job do |job|
       puts "Err: Job started before processing #{job.id}" if job_stopped? job.id
+      @threads = []
       @current_job = job
+      run_job @current_job
+    end
+  end
+
+  def run_job job
+    @threads << Thread.new do |t|
       begin
         Timeout::timeout(@job_exec_timeout) do
           puts "#{name}: Run #{@current_job.id}"
           job.run_proc
         end
       rescue Timeout::Error
+          puts "#{name}: Job timeout #{@current_job.id}"
       end
       result = {
         :began => job.run_begin,
