@@ -40,7 +40,7 @@ class Worker
         :began => @current_job.run_begin || nil,
         :end => @current_job.run_end || nil,
         :worker => name,
-        :result => "Killed - Cleanup"
+        :result => @current_job.result || "Killed - Cleanup"
       }
 
       job_done @current_job, result
