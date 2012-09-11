@@ -105,12 +105,13 @@ class Worker
         end
       rescue Timeout::Error
           puts "#{name}: Job timeout #{@current_job.id}"
+          @current.job.result = "Timeout"
       end
       result = {
         :began => job.run_begin,
         :end => job.run_end,
         :worker => name,
-        :result => job.result || "Timeout"
+        :result => job.result
       }
       job_done job, result
       @completed_jobs << @current_job
