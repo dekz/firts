@@ -7,6 +7,10 @@ class WorkerRunner
     @current_jobs = []
     @workers = []
     @workers << Worker.new(opts)
+    trap :INT do
+      cleanup
+      exit 0
+    end
   end
 
   def running?
