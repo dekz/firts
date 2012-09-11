@@ -6,17 +6,19 @@ Distributed workers with Tuplespace. Send jobs as procs with arguments (no scope
 
     # Do these 3 commands in separate terminals, they block.
     # Start a TupleSpace for everyone to communicate through
-    rake ts
+    firts ts
     # Start a worker
-    rake worker
+    firts worker
     # Start a Taskmaster
-    rake taskmaster
+    firts taskmaster
 
 Send a remote worker a job:
 
     tm = Taskmaster.new
     tm.run_job('Jacob') do |name|
-      puts "Hi there #{name}"
+      msg = "Hi there #{name}" 
+      puts msg
+      msg
     end
 
 Remote worker will pickup the job and you should see:
@@ -25,6 +27,24 @@ Remote worker will pickup the job and you should see:
     worker::CemHb15DCBzY7Zo: Run u1gADFHDXWH2SvJ
     Hi there Jacob
     worker::CemHb15DCBzY7Zo: Done 0
+    
+If you ask Taskmaster for the completed jobs, you should seem something similar to:
+
+    tm.completed_jobs
+    # =>[[{
+           job => :complete,
+           id => "u1gADFHDXWH2SvJ",
+           result => {
+             :began => 2012-09-11 10:16:14 +1000,
+             :end => 2012-09-11 10:16:14 +1000, 
+             :worker => worker::CemHb15DCBzY7Zo, 
+             :result => "Hi there Jacob"
+           }
+        ]]
+        
+These results are rendered as simple string out puts, whereas most will be reference objects.
+
+    
 
 ## Overview
 Workers listen on TupleSpace for Jobs sent out by Taskmasters. It pulls a job from the list and runs it, posting back to TupleSpace when it's done. You can send over a proc with `Taskmaster#run_job` and pass in args to the proc which will be either Marshalled over to the remote worker or a Reference will be sent when it cannot be marshalled (Files etc).
@@ -43,4 +63,3 @@ Workers listen on TupleSpace for Jobs sent out by Taskmasters. It pulls a job fr
 
 Copyright (c) 2012 Jacob Evans. See LICENSE.txt for
 further details.
-
