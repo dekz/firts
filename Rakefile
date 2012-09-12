@@ -10,6 +10,9 @@ require 'rubygems'
 #  exit e.status_code
 #end
 require 'rake'
+require 'rspec'
+require 'rspec/core/rake_task'
+$:.unshift File.expand_path(File.join(File.dirname(__FILE__), 'lib'))
 
 require 'jeweler'
 Jeweler::Tasks.new do |gem|
@@ -32,8 +35,6 @@ Rake::TestTask.new(:test) do |test|
   test.verbose = true
 end
 
-task :default => :test
-
 require 'rdoc/task'
 Rake::RDocTask.new do |rdoc|
   version = File.exist?('VERSION') ? File.read('VERSION') : ""
@@ -43,3 +44,16 @@ Rake::RDocTask.new do |rdoc|
   rdoc.rdoc_files.include('README*')
   rdoc.rdoc_files.include('lib/**/*.rb')
 end
+
+
+desc 'Default: run specs.'
+task :default => :spec
+
+desc "Run specs"
+RSpec::Core::RakeTask.new do |t|
+  t.pattern = "./spec/**/*_spec.rb" 
+  # Put spec opts in a file named .rspec in root
+end
+
+
+

@@ -9,9 +9,11 @@ class FirtsApp < Thor
 
   desc 'worker [CONFIG]', 'Start a simple worker'
   method_option :ts, :type => :string, :aliases => '-t', :desc => 'TupleSpace location'
+  method_option :num, :type => :numeric, :aliases => '-n', :desc => 'Number of workers'
   def worker(config={})
     opts = options.dup
     opts[:server] = options[:ts] if options[:ts]
+    opts[:worker_count] = options[:num] if options[:num]
     runner = WorkerRunner.new opts
     runner.run
   end

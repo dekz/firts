@@ -1,3 +1,4 @@
+require 'worker'
 require 'timeout'
 
 class WorkerRunner
@@ -5,11 +6,18 @@ class WorkerRunner
   def initialize opts={}
     @running = true
     @current_jobs = []
-    @workers = []
-    @workers << Worker.new(opts)
+    create_workers opts
+
     trap :INT do
       cleanup
       exit 0
+    end
+  end
+
+  def create_workers opts
+    worker_count = opts[:worker_count] || 1
+    @workers = worker_count.times.map do
+      Worker.new(opts)
     end
   end
 
@@ -22,10 +30,10 @@ class WorkerRunner
   end
 
   def cleanup
-    workers.each do |worker|
+    @workers.each do |worker|
       worker.cleanup
-      workers.delete worker
     end
+    @workers.clear
   end
 
   def run
