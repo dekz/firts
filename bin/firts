@@ -10,12 +10,43 @@ class FirtsApp < Thor
   desc 'worker [CONFIG]', 'Start a simple worker'
   method_option :ts, :type => :string, :aliases => '-t', :desc => 'TupleSpace location'
   method_option :num, :type => :numeric, :aliases => '-n', :desc => 'Number of workers'
+  method_option :num_wr, :type => :numeric, :aliases => '-n', :desc => 'Number of worker runners'
+  method_option :daemonize, :type => :string, :aliases => '-d', :desc => 'Daemonize the worker runners'
   def worker(config={})
     opts = options.dup
     opts[:server] = options[:ts] if options[:ts]
-    opts[:worker_count] = options[:num] if options[:num]
-    runner = WorkerRunner.new opts
-    runner.run
+    opts[:worker_count] = options[:num] || 1
+    opts[:worker_runners] = options[:num_wr] || 1
+    if opts[:daemonize]
+      # FORK DAEMONIZE
+      opts[:worker_runners].times do |i|
+        fork do
+          begin
+            runner = WorkerRunner.new opts
+            runner.run
+          rescue Interrupt
+            runner.cleanup
+          end
+        end
+      end
+    else
+      # THREADED RUN
+      threads = []
+      worker_runners = []
+      opts[:worker_runners].times do |i|
+        threads << Thread.new do
+          runner = WorkerRunner.new opts
+          worker_runners << runner
+          runner.run
+        end
+      end
+
+      begin
+        threads.each { |t| t.join }
+      rescue Interrupt
+        worker_runners.each { |w| w.cleanup }
+      end
+    end
   end
 
   desc 'taskmaster [CONFIG]', 'Start a taskmaster'
