@@ -45,8 +45,6 @@ class WorkerRunner
 
   def run
     while running? do
-      p 'running'
-      sleep 1
       workers.each do |worker|
         # tell worker to check revoke status
         worker.job_stopped?
