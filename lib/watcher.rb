@@ -1,6 +1,7 @@
 require 'rinda/ring'
 require 'job'
 require 'ringnotify'
+require 'worker'
 
 class Watcher
   attr_accessor :ts, :selectors, :watchers
@@ -9,7 +10,7 @@ class Watcher
     @ts = Utils::find_tuplespace opts
     raise "Unable to find TupleSpace" unless @ts
     @selectors = [
-      [:name, :worker, String],
+      Worker::WORKER_TEMPLATE,
       Job::START_TEMPLATE,
       Job::STOP_TEMPLATE,
       Job::COMPLETE_TEMPLATE,
@@ -28,7 +29,7 @@ class Watcher
       t = Thread.new do
         ns = RingNotify.new(ts, pattern)
         ns.each do |tuple|
-          p tuple
+          p "#{tuple} matched #{pattern}"
         end
       end
       @watchers << t
