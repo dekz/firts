@@ -49,6 +49,15 @@ These results are rendered as simple string out puts, whereas most will be refer
 ## Overview
 Workers listen on TupleSpace for Jobs sent out by Taskmasters. It pulls a job from the list and runs it, posting back to TupleSpace when it's done. You can send over a proc with `Taskmaster#run_job` and pass in args to the proc which will be either Marshalled over to the remote worker or a Reference will be sent when it cannot be marshalled (Files etc).
 
+### Selectors
+Selectors are a general representation of a construct in TupleSpace. Workers look for certain selectors to find jobs or other actionable items. A Simple selector looks like the following:
+
+    START_TEMPLATE = { 'job' => :start, 'id' => nil, 'run' => nil, }
+    STOP_TEMPLATE = { 'job' => :stop, 'id' => nil }
+    COMPLETE_TEMPLATE = { 'job' => :complete, 'id' => nil, 'result' => nil }
+
+Note the useage of strings for keys, this is required in TupleSpace for hash constructs.
+
 ## Contributing to firts
  
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet.
