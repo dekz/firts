@@ -5,7 +5,7 @@ require 'utils'
 require 'job'
 
 class Worker
-  attr_accessor :ts, :running, :name, :current_job, :selectors
+  attr_accessor :ts, :running, :name, :id, :current_job, :selectors
   WORKER_TEMPLATE = [:name, :worker, String]
   def initialize(opts = {})
     drb_init

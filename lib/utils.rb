@@ -30,7 +30,7 @@ class Utils
     require 'drb'
     require 'rinda/ring'
     #DRb.current_server rescue DRb.start_service
-    server = opts["server"] if opts
+    server = opts[:server] if opts
     ts = nil
     if server
       ts = DRbObject.new_with_uri(server)
