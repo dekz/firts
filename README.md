@@ -15,11 +15,8 @@ Distributed workers with Tuplespace. Send jobs as procs with arguments (no scope
 Send a remote worker a job:
 
     tm = Taskmaster.new
-    tm.run_job('Jacob') do |name|
-      msg = "Hi there #{name}" 
-      puts msg
-      msg
-    end
+    # See Creating Jobs for creating new jobs
+    tm.run_job(job)
 
 Remote worker will pickup the job and you should see:
 
@@ -37,14 +34,12 @@ If you ask Taskmaster for the completed jobs, you should seem something similar 
            result => {
              :began => 2012-09-11 10:16:14 +1000,
              :end => 2012-09-11 10:16:14 +1000, 
-             :worker => worker::CemHb15DCBzY7Zo, 
+             :worker => "worker::CemHb15DCBzY7Zo", 
              :result => "Hi there Jacob"
            }
         ]]
         
 These results are rendered as simple string out puts, whereas most will be reference objects.
-
-    
 
 ## Overview
 Workers listen on TupleSpace for Jobs sent out by Taskmasters. It pulls a job from the list and runs it, posting back to TupleSpace when it's done. You can send over a proc with `Taskmaster#run_job` and pass in args to the proc which will be either Marshalled over to the remote worker or a Reference will be sent when it cannot be marshalled (Files etc).
@@ -55,6 +50,13 @@ Selectors are a general representation of a construct in TupleSpace. Workers loo
     START_TEMPLATE = { 'job' => :start, 'id' => nil, 'run' => nil, }
     STOP_TEMPLATE = { 'job' => :stop, 'id' => nil }
     COMPLETE_TEMPLATE = { 'job' => :complete, 'id' => nil, 'result' => nil }
+
+### Creating Jobs
+Jobs can be created (before being published) using `Job::create`.
+
+    job = Job::create({ 'id' => '123abc' }) do |j|
+      j.run_task = { 'proc' => Proc.new { |name| puts "Hello #{name}" }, 'args' => 'Fabio' }
+    end
 
 Note the useage of strings for keys, this is required in TupleSpace for hash constructs.
 
