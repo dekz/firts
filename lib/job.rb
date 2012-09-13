@@ -31,10 +31,17 @@ class Job
 
   def run_proc
     return if @run_task.nil?
+    prc = eval_proc
+    args = grab_args
+    exec_proc args, prc
+    @run_end = Time.now
+    @executed = true
+    @result
+  end
+
+  def exec_proc args, prc
     @run_begin = Time.now
     begin
-      prc = eval @run_task['proc'] 
-      args = grab_args
       @result = prc.call *args
     rescue NameError => e
       puts e
@@ -42,8 +49,11 @@ class Job
       puts e
     end
     @run_end = Time.now
-    @executed = true
     @result
+  end
+
+  def eval_proc
+    eval @run_task['proc'] 
   end
 
   def self.create args={}
