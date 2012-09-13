@@ -12,7 +12,6 @@ class Worker
     @id = Utils.random_str
     @name = "worker::#{@id}"
     @ts = Utils::find_tuplespace opts
-    connect
 
     @pid = Process.pid
     File.write("#{@name}.pid", @pid)
@@ -21,13 +20,14 @@ class Worker
     @running = true
     @job_exec_timeout = opts[:job_exec_timeout] || 300
     @job_search_timeout = opts[:job_search_timeout] || 0.1
-    @heartbeat_refresh = opts[:heartbeat] || 30
+    @heartbeat_refresh = opts[:heartbeat] || 10
     @threads = []
 
     @selectors = [
      [ Job::START_TEMPLATE.dup, Proc.new { |j| j } ],
      [ { 'worker' => @id, 'job' => nil }, Proc.new { |j| puts 'invididual job';j['job'] }  ],
     ]
+    connect
   end
 
   def drb_init
@@ -59,7 +59,7 @@ class Worker
   def heartbeat
     me = WORKER_TEMPLATE.dup
     me[2] = name
-    @heartbeat_entry ||= @ts.write(me, @heartbeat_refresh)
+    @heartbeat_entry ||= @ts.write(me, @heartbeat_refresh + 10)
     @heartbeat_entry.renew(@heartbeat_refresh) unless @heartbeat_entry.canceled?
   end
 
