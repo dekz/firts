@@ -46,6 +46,19 @@ class Taskmaster
     results
   end
 
+  def run_all job, timeout=30
+    p 'runall'
+    workers.each do |worker|
+      p worker
+      id = worker[2].gsub("worker::", '')
+      p id
+      publish_job job, id
+    end
+    workers.size.times do
+      receive_result job, timeout
+    end
+  end
+
   def task_list
     tasks = Struct.new(:num, :job, :worker).new
     yield tasks
