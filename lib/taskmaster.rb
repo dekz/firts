@@ -47,12 +47,8 @@ class Taskmaster
   end
 
   def run_all job, timeout=30
-    p 'runall'
     workers.each do |worker|
-      p worker
-      id = worker[2].gsub("worker::", '')
-      p id
-      publish_job job, id
+      publish_job job, worker['name']
     end
     workers.size.times do
       receive_result job, timeout
@@ -99,18 +95,16 @@ class Taskmaster
   def clear_jobs
     stopped = []
     st = Job::STOP_TEMPLATE
-    stop = @ts.take(st, 0) rescue nil
-    while !stop.nil?
-      stopped << stop
+    begin
       stop = @ts.take(st, 0) rescue nil
-    end
+      stopped << stop
+    end while !stop.nil?
 
     jt = Job::START_TEMPLATE
-    stop = @ts.take(jt, 0) rescue nil
-    while !stop.nil?
-      stopped << stop
+    begin 
       stop = @ts.take(jt, 0) rescue nil
-    end
+      stopped << stop
+    end while !stop.nil?
     stopped
   end
 
