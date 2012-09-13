@@ -14,24 +14,55 @@ class Taskmaster
   end
 
   def drb_init
-      DRb.start_service
+    DRb.start_service
   end
 
   ##
   # Runs the job on a remote worker. Args passed in here
   # will either be Marshalled or a Reference (DRbObject)
   # will be sent over.
-  def run_job *args, &block
+  def run_job job, timeout=30
+    publish_job job
+    receive_result job, timeout
+  end
+
+  def run_jobs jobs, timeout=30
+    jobs.each do |j|
+      publish_job j
+    end
+
+    jobs_done = 0
+    jobs_total_count = jobs.size
+    results = []
+    while jobs_done != jobs_total_count
+      job = jobs[0]
+      found = receive_result job, timeout rescue :not_found
+      if found != :not_found
+        results << found
+        jobs_done += 1
+        jobs.delete_at(0)
+      end
+    end
+    results
+  end
+
+  def publish_job job
     require 'sourcify'
-    block_string = block.to_source
+    block_string = job.run_task['proc'].to_source
     jt = Job::START_TEMPLATE.dup
-    jt['id'] = Utils::random_str
+    jt['id'] = job.id
     jt['run'] = {
       'proc' => block_string,
-      'args' => args
+      'args' => job.run_task['args']
     }
     @ts.write jt
     jt['id']
+  end
+
+  def receive_result job, timeout
+    jc = Job::COMPLETE_TEMPLATE.dup
+    jc['id'] = job.id
+    job = @ts.take(jc, timeout)
   end
 
   def clear_jobs

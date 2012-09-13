@@ -1,3 +1,4 @@
+require 'utils'
 class JobExists < Exception; end
 
 class Job
@@ -9,15 +10,14 @@ class Job
 
   STOP_TEMPLATE = { 'job' => :stop, 'id' => nil }
   COMPLETE_TEMPLATE = { 'job' => :complete, 'id' => nil, 'result' => nil }
-  attr_accessor :id, :result, :run_begin, :run_end
+  attr_accessor :id, :result, :run_task
+  attr_reader :run_begin, :run_end, :executed, :stopped
   def initialize id, run_task
     @id = id
-    @run_task = run_task
+    @run_task = run_task || {}
     @result = nil
-  end
-
-  def to_s
-    @id
+    @executed = false
+    @stopped = false
   end
 
   def ==(j)
@@ -42,7 +42,15 @@ class Job
       puts e
     end
     @run_end = Time.now
+    @executed = true
     @result
+  end
+
+  def self.create args={}
+    args['id'] ||= Utils.random_str
+    job = self.load(args)
+    yield job if block_given?
+    job
   end
 
   def grab_args
