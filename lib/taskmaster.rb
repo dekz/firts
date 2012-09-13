@@ -46,6 +46,21 @@ class Taskmaster
     results
   end
 
+  def task_list
+    tasks = Struct.new(:num, :job)
+    yield tasks
+    results = []
+    Array(tasks[:job]).each do |job|
+      job_results = []
+      num = tasks[:num] || 1
+      num.times do |i|
+        job_results.push  run_job(job)
+      end
+      results << job_results
+    end
+    results
+  end
+
   def publish_job job
     require 'sourcify'
     block_string = job.run_task['proc'].to_source
