@@ -3,10 +3,11 @@ require 'rinda/tuplespace'
 require 'open-uri'
 
 class TupleServer
-  def initialize opts={}
+  def initialize opts
 
-    p opts
-    _uri = opts[:ts] || 'druby://:12345'
+    opts ||= {}
+    hostname = `hostname`.chomp
+    _uri = opts[:ts] || "druby://#{hostname}:12345"
     uri = URI(_uri)
 
     @ts = Rinda::TupleSpace.new
