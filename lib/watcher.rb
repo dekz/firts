@@ -4,16 +4,17 @@ require 'job'
 require 'ringnotify'
 
 class Watcher
-  attr_accessor :ts, :patterns, :watchers
+  attr_accessor :ts, :selectors, :watchers
   def initialize(opts = {})
     drb_init
     @ts = Utils::find_tuplespace opts
     raise "Unable to find TupleSpace" unless @ts
-    @patterns = [
+    @selectors = [
       [:name, :worker, String],
       Job::START_TEMPLATE,
       Job::STOP_TEMPLATE,
       Job::COMPLETE_TEMPLATE,
+      { 'worker' => nil, 'job' => nil }
     ]
   end
 
@@ -24,7 +25,7 @@ class Watcher
   def watch
     puts "Watching..."
     @watchers = []
-    patterns.each do |pattern|
+    selectors.each do |pattern|
       t = Thread.new do
         ns = RingNotify.new(ts, pattern)
         ns.each do |tuple|

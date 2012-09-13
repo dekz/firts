@@ -5,11 +5,12 @@ require 'utils'
 require 'job'
 
 class Worker
-  attr_accessor :ts, :running, :name, :current_job
+  attr_accessor :ts, :running, :name, :current_job, :selectors
   WORKER_TEMPLATE = [:name, :worker, String]
   def initialize(opts = {})
     drb_init
-    @name = "worker::#{Utils.random_str}"
+    @id = Utils.random_str
+    @name = "worker::#{@id}"
     @ts = Utils::find_tuplespace opts
     connect
 
@@ -22,6 +23,11 @@ class Worker
     @job_search_timeout = opts[:job_search_timeout] || 0.1
     @heartbeat_refresh = opts[:heartbeat] || 30
     @threads = []
+
+    @selectors = [
+     [ Job::START_TEMPLATE.dup, Proc.new { |j| j } ],
+     [ { 'worker' => @id, 'job' => nil }, Proc.new { |j| puts 'invididual job';j['job'] }  ],
+    ]
   end
 
   def drb_init
@@ -119,10 +125,18 @@ class Worker
     end
   end
 
+  def selector
+    s = @selectors.pop
+    @selectors.unshift s
+    s
+  end
+
   def get_job
     begin
-      jt = Job::START_TEMPLATE.dup
-      job = take jt, 0, false
+      s, sproc = selector
+      job = take s, 0, false
+      job = sproc.call job
+
       job = Job.load job
       yield job
     rescue Rinda::RequestExpiredError

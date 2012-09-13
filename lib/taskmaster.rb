@@ -21,8 +21,8 @@ class Taskmaster
   # Runs the job on a remote worker. Args passed in here
   # will either be Marshalled or a Reference (DRbObject)
   # will be sent over.
-  def run_job job, timeout=30
-    publish_job job
+  def run_job job, worker=nil, timeout=30
+    publish_job job, worker
     receive_result job, timeout
   end
 
@@ -47,21 +47,21 @@ class Taskmaster
   end
 
   def task_list
-    tasks = Struct.new(:num, :job)
+    tasks = Struct.new(:num, :job, :worker).new
     yield tasks
     results = []
     Array(tasks[:job]).each do |job|
       job_results = []
       num = tasks[:num] || 1
       num.times do |i|
-        job_results.push  run_job(job)
+        job_results.push run_job(job, tasks[:worker])
       end
       results << job_results
     end
     results
   end
 
-  def publish_job job
+  def publish_job job, worker=nil
     require 'sourcify'
     block_string = job.run_task['proc'].to_source
     jt = Job::START_TEMPLATE.dup
@@ -70,8 +70,11 @@ class Taskmaster
       'proc' => block_string,
       'args' => job.run_task['args']
     }
+    if worker
+      puts "Publishing for worker"
+      jt = { "worker" => worker, "job" => jt }
+    end
     @ts.write jt
-    jt['id']
   end
 
   def receive_result job, timeout
