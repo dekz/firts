@@ -6,12 +6,13 @@ require 'job'
 
 class Worker
   attr_accessor :ts, :running, :name, :id, :current_job, :selectors
-  WORKER_TEMPLATE = [:name, :worker, String]
+
+  #WORKER_TEMPLATE = [:name, :worker, String]
+  WORKER_TEMPLATE = { 'name' => String, 'type' => :worker }
   def initialize(opts = {})
     drb_init
     @id = Utils.random_str
     @name = "worker::#{@id}"
-    @ts = Utils::find_tuplespace opts
 
     @pid = Process.pid
     File.write("#{@name}.pid", @pid)
@@ -25,16 +26,18 @@ class Worker
 
     @selectors = [
      [ Job::START_TEMPLATE.dup, Proc.new { |j| j } ],
-     [ { 'worker' => @id, 'job' => nil }, Proc.new { |j| puts 'invididual job';j['job'] }  ],
+     [ { 'worker' => @id, 'job' => nil }, Proc.new { |j| j['job'] }  ],
     ]
-    connect
+
+    connect opts
   end
 
   def drb_init
     DRb.start_service
   end
 
-  def connect
+  def connect opts
+    @ts = Utils::find_tuplespace opts
     puts "#{@name} connected to #{@ts.to_s}"
     Utils::repeat_every(@heartbeat_refresh) { heartbeat }
   end
@@ -58,7 +61,7 @@ class Worker
   # # Let others know we're around
   def heartbeat
     me = WORKER_TEMPLATE.dup
-    me[2] = name
+    me['name'] = id
     @heartbeat_entry ||= @ts.write(me, @heartbeat_refresh + 10)
     @heartbeat_entry.renew(@heartbeat_refresh) unless @heartbeat_entry.canceled?
   end
