@@ -1,13 +1,17 @@
 require 'rinda/ring'
 require 'rinda/tuplespace'
+require 'open-uri'
 
 class TupleServer
-  def initialize uri=nil
-    uri ||= 'druby://:12345'
+  def initialize opts={}
+
+    p opts
+    _uri = opts[:ts] || 'druby://:12345'
+    uri = URI(_uri)
 
     @ts = Rinda::TupleSpace.new
-    @place = Rinda::RingServer.new(@ts)
-    DRb.start_service(uri, @ts)
+    @place = Rinda::RingServer.new(@ts, uri.port)
+    DRb.start_service(_uri, @ts)
 
     puts "TupleSpace on #{DRb.uri}"
 
