@@ -81,19 +81,15 @@ class Worker
   end
 
   def read template, timeout=0, rescue_me=true
-    if rescue_me 
-      @ts.read(template, timeout) rescue nil
-    else
-      @ts.read(template, timeout)
-    end
+    @ts.read(template, timeout)
+  rescue Exception => e
+    raise e unless rescue_me
   end
 
   def take template, timeout=0, rescue_me=true
-    if rescue_me
-      @ts.take(template, timeout) rescue nil
-    else
-      @ts.take(template, timeout)
-    end
+    @ts.take(template, timeout)
+  rescue Exception => e
+    raise e unless rescue_me
   end
 
   def start_a_job

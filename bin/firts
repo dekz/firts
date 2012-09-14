@@ -72,7 +72,7 @@ class FirtsApp < Thor
   desc 'ts [CONFIG]', 'Start a TupleSpace'
   method_option :ts, :type => :string, :aliases => '-t', :desc => 'TupleSpace location'
   def ts(config={})
-    ts = TupleServer.new options[:ts]
+    ts = TupleServer.new options
   end
 end
 

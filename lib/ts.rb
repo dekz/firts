@@ -7,7 +7,7 @@ class TupleServer
 
     opts ||= {}
     hostname = `hostname`.chomp
-    _uri = opts[:ts] || "druby://#{hostname}:12345"
+    _uri = opts[:ts] || "druby://0:12345"
     uri = URI(_uri)
 
     @ts = Rinda::TupleSpace.new
