@@ -25,7 +25,9 @@ class Worker
     @threads = []
 
     @selectors = [
+     # Any worker job
      [ Job::START_TEMPLATE.dup, Proc.new { |j| j } ],
+     # Specific Job for me
      [ { 'worker' => @id, 'job' => nil }, Proc.new { |j| j['job'] }  ],
     ]
 
@@ -55,6 +57,7 @@ class Worker
       job_done @current_job, result
     end
     @heartbeat_entry.cancel if @heartbeat_entry
+  ensure
     File.delete("#{name}.pid")
   end
 

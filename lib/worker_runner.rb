@@ -38,18 +38,30 @@ class WorkerRunner
       worker.cleanup
     end
     @workers.clear
+  ensure
     if @daemonize
       File.delete("firts-wr-#{@pid}.pid")
     end
   end
 
   def run
+    retry_times = 3
+    retry_count = 0
     while running? do
       workers.each do |worker|
-        # tell worker to check revoke status
-        worker.job_stopped?
-        # look for a new job if they don't have one
-        worker.start_a_job unless worker.current_job
+        begin
+          # tell worker to check revoke status
+          worker.job_stopped?
+          # look for a new job if they don't have one
+          worker.start_a_job unless worker.current_job
+        rescue DRb::DRbConnError => e
+          # Probably lost connection to TS
+          retry_count += 1
+          retry unless retry_count >= retry_times
+          cleanup rescue nil
+          puts "Lost connection to TupleSpace"
+          exit 1
+        end
       end
     end
   end
