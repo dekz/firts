@@ -10,18 +10,26 @@ class WorkerRunner
     if opts[:daemonize]
       @daemonize = true
       @pid = Process.pid
-      File.write("firts-wr-#{@pid}.pid", @pid)
+      File.write(my_pid_file, @pid)
     end
 
     create_workers opts
   end
 
+  def my_pid_file
+    "firts-wr-#{@pid}.pid"
+  end
+
   def create_workers opts
     worker_count = opts[:worker_count] || 1
-    puts "Creating #{worker_count} workers"
+    log "Creating #{worker_count} workers"
     @workers = worker_count.times.map do
       Worker.new(opts)
     end
+  end
+
+  def log *args
+    puts *args
   end
 
   def running?
@@ -39,31 +47,50 @@ class WorkerRunner
     end
     @workers.clear
   ensure
-    if @daemonize
-      File.delete("firts-wr-#{@pid}.pid")
-    end
+    File.delete(my_pid_file) if @daemonize
   end
 
   def run
     retry_times = 3
     retry_count = 0
     while running? do
+      stopped_workers = []
       workers.each do |worker|
+        # Let's collect all the dead workers
+        if worker.status != :running
+          stopped_workers << worker
+          next
+        end
+
         begin
-          # tell worker to check revoke status
-          worker.job_stopped?
-          # look for a new job if they don't have one
-          worker.start_a_job unless worker.current_job
+          if worker.current_job
+            # tell worker to check revocation status
+            worker.job_stopped?
+          else
+            # look for a new job if they don't have one
+            #worker.start_a_job
+          end
         rescue DRb::DRbConnError => e
           # Probably lost connection to TS
           retry_count += 1
           retry unless retry_count >= retry_times
-          cleanup rescue nil
-          puts "Lost connection to TupleSpace"
-          exit 1
+          # Try and cleanup as much as possible
+          worker.cleanup rescue nil
+          stopped_workers << worker
+          next
+          #cleanup rescue nil
+          log 'Lost connection to TupleSpace'
         end
       end
+
+      # Something weird happens here when using attr_accessor, use iv @
+      # cannot perform the "-" on Array and assign, nil TODO
+      @workers = workers-stopped_workers
+      @running = false if workers.size == 0
+      sleep 0.1
     end
+  ensure
+    cleanup rescue nil
   end
 end
 

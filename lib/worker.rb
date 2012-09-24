@@ -7,7 +7,6 @@ require 'job'
 class Worker
   attr_accessor :ts, :running, :name, :id, :current_job, :selectors
 
-  #WORKER_TEMPLATE = [:name, :worker, String]
   WORKER_TEMPLATE = { 'name' => String, 'type' => :worker }
   def initialize(opts = {})
     drb_init
@@ -15,15 +14,16 @@ class Worker
     @name = "worker::#{@id}"
 
     @pid = Process.pid
-    File.write("#{@name}.pid", @pid)
+    File.write(my_pid_file, @pid)
     @current_job = nil
     @completed_jobs = []
     @running = true
+
     @job_exec_timeout = opts[:job_exec_timeout] || 300
     @job_search_timeout = opts[:job_search_timeout] || 0.1
     @heartbeat_refresh = opts[:heartbeat] || 10
-    @threads = []
 
+    @threads = []
     @selectors = [
      # Any worker job
      [ Job::START_TEMPLATE.dup, Proc.new { |j| j } ],
@@ -34,18 +34,46 @@ class Worker
     connect opts
   end
 
+  def status
+    return :running if @running
+    :dead
+  end
+
   def drb_init
     DRb.start_service
+  end
+
+  def my_pid_file
+    "#{@name}.pid"
   end
 
   def connect opts
     @ts = Utils::find_tuplespace opts
     puts "#{@name} connected to #{@ts.to_s}"
-    Utils::repeat_every(@heartbeat_refresh) { heartbeat }
+    t = Utils::repeat_every(@heartbeat_refresh) do
+      begin
+        heartbeat
+      rescue Exception => e
+        puts e
+        @heartbeat_entry = nil
+        @running = false
+        cleanup rescue nil
+        raise e
+      end
+    end
+  end
+
+  # # Let others know we're around
+  def heartbeat
+    me = WORKER_TEMPLATE.dup
+    me['name'] = id
+    @heartbeat_entry ||= @ts.write(me, @heartbeat_refresh + 10)
+    @heartbeat_entry.renew(@heartbeat_refresh) unless @heartbeat_entry.canceled?
   end
 
   def cleanup
     puts "#{name} cleanup"
+    @running = false
     if @current_job
       result = {
         :began => @current_job.run_begin || nil,
@@ -58,16 +86,9 @@ class Worker
     end
     @heartbeat_entry.cancel if @heartbeat_entry
   ensure
-    File.delete("#{name}.pid")
+    File.delete(my_pid_file)
   end
 
-  # # Let others know we're around
-  def heartbeat
-    me = WORKER_TEMPLATE.dup
-    me['name'] = id
-    @heartbeat_entry ||= @ts.write(me, @heartbeat_refresh + 10)
-    @heartbeat_entry.renew(@heartbeat_refresh) unless @heartbeat_entry.canceled?
-  end
 
   ## Check if our job has been cancelled
   def job_stopped? job=@current_job
