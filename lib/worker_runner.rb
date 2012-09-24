@@ -1,7 +1,7 @@
 require 'worker'
 require 'timeout'
 
-class WorkerRunner
+class Firts::WorkerRunner
   attr_accessor :workers, :ts, :pid
   def initialize opts={}
     @running = true
@@ -22,9 +22,8 @@ class WorkerRunner
 
   def create_workers opts
     worker_count = opts[:worker_count] || 1
-    log "Creating #{worker_count} workers"
     @workers = worker_count.times.map do
-      Worker.new(opts)
+      Firts::Worker.new(opts)
     end
   end
 
@@ -68,7 +67,7 @@ class WorkerRunner
             worker.job_stopped?
           else
             # look for a new job if they don't have one
-            #worker.start_a_job
+            worker.start_a_job
           end
         rescue DRb::DRbConnError => e
           # Probably lost connection to TS

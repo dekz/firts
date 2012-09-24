@@ -10,11 +10,12 @@ class Watcher
     @ts = Utils::find_tuplespace opts
     raise "Unable to find TupleSpace" unless @ts
     @selectors = [
-      Worker::WORKER_TEMPLATE,
+      Firts::Worker::WORKER_TEMPLATE,
       Job::START_TEMPLATE,
       Job::STOP_TEMPLATE,
       Job::COMPLETE_TEMPLATE,
-      { 'worker' => nil, 'job' => nil }
+      { 'worker' => nil, 'job' => nil },
+      { 'worker' => nil, 'cmd' => nil }
     ]
   end
 

@@ -26,15 +26,18 @@ class Job
   end
 
   def self.load job
-    j = Job.new job['id'], job['run']
+    Job.new job['id'], job['run']
   end
 
   def run_proc
     return if @run_task.nil?
     prc = eval_proc
     args = grab_args
-    exec_proc args, prc
-    @run_end = Time.now
+    if block_given?
+      yield args, prc
+    else
+      exec_proc args, prc
+    end
     @executed = true
     @result
   end

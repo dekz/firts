@@ -3,14 +3,15 @@ require 'rinda/tuplespace'
 require 'rinda/ring'
 require 'utils'
 require 'job'
+require 'command'
 
-class Worker
+class Firts::Worker
   attr_accessor :ts, :running, :name, :id, :current_job, :selectors
 
   WORKER_TEMPLATE = { 'name' => String, 'type' => :worker }
   def initialize(opts = {})
     drb_init
-    @id = Utils.random_str
+    @id = opts[:name] || Utils.random_str
     @name = "worker::#{@id}"
 
     @pid = Process.pid
@@ -24,11 +25,15 @@ class Worker
     @heartbeat_refresh = opts[:heartbeat] || 10
 
     @threads = []
+
+    # Selector, Creator, Processor
     @selectors = [
      # Any worker job
-     [ Job::START_TEMPLATE.dup, Proc.new { |j| j } ],
+     [ Job::START_TEMPLATE.dup, Proc.new { |j| j }, Job ],
      # Specific Job for me
-     [ { 'worker' => @id, 'job' => nil }, Proc.new { |j| j['job'] }  ],
+     [ { 'worker' => @id, 'job' => nil }, Proc.new { |j| j['job'] }, Job  ],
+     # Some form of Command Job
+     [ { 'worker' => @id, 'cmd' => nil }, Proc.new { |c| c } , Command ],
     ]
 
     connect opts
@@ -71,18 +76,17 @@ class Worker
     @heartbeat_entry.renew(@heartbeat_refresh) unless @heartbeat_entry.canceled?
   end
 
-  def cleanup
+  def cleanup publish=true
     puts "#{name} cleanup"
     @running = false
     if @current_job
-      result = {
-        :began => @current_job.run_begin || nil,
-        :end => @current_job.run_end || nil,
-        :worker => name,
-        :result => @current_job.result || "Killed - Cleanup"
-      }
+      result = {}
+      result[:began] = @current_job.run_begin rescue nil
+      result[:end] = @current_job.run_end rescue nil
+      result[:result] = @current_job.result rescue 'Killed - Cleanup'
+      result[:worker] = name
 
-      job_done @current_job, result
+      job_done(@current_job, result) if publish
     end
     @heartbeat_entry.cancel if @heartbeat_entry
   ensure
@@ -118,14 +122,30 @@ class Worker
 
   def start_a_job
     get_job do |job|
-      puts "Err: Job started before processing #{job.id}" if job_stopped? job.id
       @threads = []
       @current_job = job
       run_job @current_job
     end
   end
 
+  def run_cmd cmd
+      time_before = Time.now
+      cmd.run_cmd self
+      time_after = Time.now
+      result = {
+        :began => time_before,
+        :end => time_after,
+        :worker => name,
+        :result => nil
+      }
+      job_done cmd, result
+      @completed_jobs << @current_job
+      @current_job = nil
+  end
+
   def run_job job
+    return run_cmd job if job.respond_to? :run_cmd
+    puts "Err: Job started before processing #{job.id}" if job_stopped? job.id
     @threads << Thread.new do |t|
       begin
         Timeout::timeout(@job_exec_timeout) do
@@ -134,7 +154,7 @@ class Worker
         end
       rescue Timeout::Error
           puts "#{name}: Job timeout #{@current_job.id}"
-          @current.job.result = "Timeout"
+          @current.job.result = 'Timeout'
       end
       result = {
         :began => job.run_begin,
@@ -154,13 +174,25 @@ class Worker
     s
   end
 
+  ##
+  # Grab a job from by searching on one of our selectors
+  # job is yielded.
   def get_job
     begin
-      s, sproc = selector
+      s, sproc, clazz = selector
+      # Take the job from TS using the job selector
       job = take s, 0, false
+
+      # Remove job from envelope
       job = sproc.call job
 
-      job = Job.load job
+      # Invoke the job load
+      if clazz.respond_to? :load
+        job = clazz.send :load, job
+      else
+        job = clazz.send :call, job
+      end
+
       yield job
     rescue Rinda::RequestExpiredError
       # TODO use wait time in take?

@@ -73,15 +73,16 @@ class Taskmaster
   def publish_job job, worker=nil
     require 'sourcify'
     block_string = job.run_task['proc'].to_source
+
     jt = Job::START_TEMPLATE.dup
     jt['id'] = job.id
     jt['run'] = {
       'proc' => block_string,
       'args' => job.run_task['args']
     }
+
     if worker
-      puts "Publishing for worker"
-      jt = { "worker" => worker, "job" => jt }
+      jt = { 'worker' => worker, 'job' => jt }
     end
     @ts.write jt
   end
@@ -101,7 +102,7 @@ class Taskmaster
     end while !stop.nil?
 
     jt = Job::START_TEMPLATE
-    begin 
+    begin
       stop = @ts.take(jt, 0) rescue nil
       stopped << stop
     end while !stop.nil?
@@ -118,7 +119,7 @@ class Taskmaster
 
   def jobs_complete? num=1, timeout=10
     completed = nil
-    num.times do 
+    num.times do
       jt = Job::COMPLETE_TEMPLATE
       job =  @ts.take(jt, timeout) rescue nil
       return completed unless job
@@ -127,9 +128,9 @@ class Taskmaster
     end
     completed
   end
-  
+
   def workers
-    wt = Worker::WORKER_TEMPLATE 
+    wt = Firts::Worker::WORKER_TEMPLATE
     @ts.read_all(wt) rescue nil
   end
 end

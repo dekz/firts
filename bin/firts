@@ -12,17 +12,18 @@ class FirtsApp < Thor
   method_option :num, :type => :numeric, :aliases => '-n', :desc => 'Number of workers'
   method_option :num_wr, :type => :numeric, :aliases => '-n', :desc => 'Number of worker runners'
   method_option :daemonize, :type => :string, :aliases => '-d', :desc => 'Daemonize the worker runners'
-  def worker(config={})
+  def worker(name=nil)
     opts = options.dup
     opts[:server] = options[:ts] if options[:ts]
     opts[:worker_count] = options[:num] || 1
     opts[:worker_runners] = options[:num_wr] || 1
+    opts[:name] = name unless name.nil?
     if opts[:daemonize]
       # FORK DAEMONIZE
       opts[:worker_runners].times do |i|
         fork do
           begin
-            runner = WorkerRunner.new opts
+            runner = Firts::WorkerRunner.new opts
             runner.run
           rescue Interrupt
             runner.cleanup
@@ -35,7 +36,7 @@ class FirtsApp < Thor
       worker_runners = []
       opts[:worker_runners].times do |i|
         threads << Thread.new do
-          runner = WorkerRunner.new opts
+          runner = Firts::WorkerRunner.new opts
           worker_runners << runner
           runner.run
         end
