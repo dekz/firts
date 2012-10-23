@@ -10,7 +10,7 @@ class FirtsApp < Thor
   desc 'worker [CONFIG]', 'Start a simple worker'
   method_option :ts, :type => :string, :aliases => '-t', :desc => 'TupleSpace location'
   method_option :num, :type => :numeric, :aliases => '-n', :desc => 'Number of workers'
-  method_option :num_wr, :type => :numeric, :aliases => '-n', :desc => 'Number of worker runners'
+  method_option :num_wr, :type => :numeric, :aliases => '-r', :desc => 'Number of worker runners'
   method_option :daemonize, :type => :string, :aliases => '-d', :desc => 'Daemonize the worker runners'
   def worker(name=nil)
     opts = options.dup
