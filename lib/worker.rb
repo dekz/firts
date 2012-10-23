@@ -26,14 +26,16 @@ class Firts::Worker
 
     @threads = []
 
-    # Selector, Creator, Processor
+    # Selector, Processor, Executor
+    # Processor calls #process or #call
+    # Executor calls #load or #call
     @selectors = [
      # Any worker job
      [ Job::START_TEMPLATE.dup, Proc.new { |j| j }, Job ],
      # Specific Job for me
      [ { 'worker' => @id, 'job' => nil }, Proc.new { |j| j['job'] }, Job  ],
      # Some form of Command Job
-     [ { 'worker' => @id, 'cmd' => nil }, Proc.new { |c| c } , Command ],
+     [ { 'worker' => @id, 'cmd' => nil }, Command , Command ],
     ]
 
     connect opts
@@ -116,6 +118,10 @@ class Firts::Worker
 
   def take template, timeout=0, rescue_me=true
     @ts.take(template, timeout)
+  rescue TypeError => e
+    puts "Bad format in JobSpace"
+    puts e
+    puts e.backtrace
   rescue Exception => e
     raise e unless rescue_me
   end
@@ -184,14 +190,12 @@ class Firts::Worker
       job = take s, 0, false
 
       # Remove job from envelope
-      job = sproc.call job
+      sproc_meth = sproc.respond_to?(:process) ? :process : :call
+      job = sproc.send sproc_meth, job
 
       # Invoke the job load
-      if clazz.respond_to? :load
-        job = clazz.send :load, job
-      else
-        job = clazz.send :call, job
-      end
+      clazz_meth = clazz.respond_to?(:load) ? :load : :call
+      job = clazz.send clazz_meth, job
 
       yield job
     rescue Rinda::RequestExpiredError
