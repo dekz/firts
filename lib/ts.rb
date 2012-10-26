@@ -8,10 +8,10 @@ class TupleServer
     opts ||= {}
     hostname = `hostname`.chomp
     _uri = opts[:ts] || "druby://0:12345"
-    uri = URI(_uri)
+#    uri = URI(_uri)
 
     @ts = Rinda::TupleSpace.new
-    @place = Rinda::RingServer.new(@ts, uri.port)
+    @place = Rinda::RingServer.new(@ts, nil)
     DRb.start_service(_uri, @ts)
 
     puts "TupleSpace on #{DRb.uri}"
