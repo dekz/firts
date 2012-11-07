@@ -2,8 +2,11 @@ require 'rinda/ring'
 require 'job'
 require 'ringnotify'
 require 'worker'
+require 'network'
 
 class Watcher
+
+  include Network
   attr_accessor :ts, :selectors, :watchers
   def initialize(opts = {})
     drb_init
@@ -11,6 +14,7 @@ class Watcher
     raise "Unable to find TupleSpace" unless @ts
     @selectors = [
       Firts::Worker::WORKER_TEMPLATE,
+      Job::JOB_TEMPLATE,
       Job::START_TEMPLATE,
       Job::STOP_TEMPLATE,
       Job::COMPLETE_TEMPLATE,
@@ -19,18 +23,13 @@ class Watcher
     ]
   end
 
-  def drb_init
-      DRb.start_service
-  end
-
   def watch
-    puts "Watching..."
     @watchers = []
     selectors.each do |pattern|
       t = Thread.new do
         ns = RingNotify.new(ts, pattern)
         ns.each do |tuple|
-          p "#{tuple} matched #{pattern}"
+          puts "#{pattern}: #{tuple}"
         end
       end
       @watchers << t
