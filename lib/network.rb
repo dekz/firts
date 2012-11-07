@@ -2,7 +2,12 @@
 module Network
 
   def drb_init
-    DRb.start_service
+    require 'socket'
+    ip = Socket.ip_address_list.detect{|intf| intf.ipv4? and !intf.ipv4_loopback? and !intf.ipv4_multicast? and !intf.ipv4_private?}
+    raise "IPV4 only supported" unless ip.ip? and ip.ipv4?
+    ip = ip.ip_address || ""
+    DRb.start_service("druby://#{ip}:0")
+    puts DRb.uri
   end
 
   def find_tuplespace opts

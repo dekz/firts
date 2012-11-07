@@ -34,12 +34,11 @@ class Firts::Worker
     # Processor calls #process or #call
     # Executor calls #load or #call
     @selectors = [
-     [ Job::JOB_TEMPLATE.dup, Proc.new { |j| j }, Job ],
      # Any worker job
-#     [ Job::START_TEMPLATE.dup, Proc.new { |j| j }, Job ],
-#     # Specific Job for me
+     [ Job::JOB_TEMPLATE.dup, Proc.new { |j| j }, Job ],
+     # Specific Job for me
      [ { 'worker' => @id, 'job' => nil }, Proc.new { |j| j['job'] }, Job  ],
-#     # Some form of Command Job
+     # Some form of Command Job
      [ { 'worker' => @id, 'cmd' => nil }, Command , Command ],
     ]
 
@@ -184,6 +183,7 @@ class Firts::Worker
 
       yield job['job']
     rescue Rinda::RequestExpiredError => e
+      # This happens when the lookup expires, it's an OK exception
       # TODO use wait time in take?
       sleep @job_search_timeout
     end
