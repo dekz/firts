@@ -4,8 +4,12 @@ require 'rinda/ring'
 require 'utils'
 require 'job'
 require 'command'
+require 'network'
 
 class Firts::Worker
+  include Network
+  include Network::Reader
+  include Network::Writer
   attr_accessor :ts, :running, :name, :id, :current_job, :selectors
 
   WORKER_TEMPLATE = { 'name' => String, 'type' => :worker }
@@ -30,11 +34,12 @@ class Firts::Worker
     # Processor calls #process or #call
     # Executor calls #load or #call
     @selectors = [
+     [ Job::JOB_TEMPLATE.dup, Proc.new { |j| j }, Job ],
      # Any worker job
-     [ Job::START_TEMPLATE.dup, Proc.new { |j| j }, Job ],
-     # Specific Job for me
+#     [ Job::START_TEMPLATE.dup, Proc.new { |j| j }, Job ],
+#     # Specific Job for me
      [ { 'worker' => @id, 'job' => nil }, Proc.new { |j| j['job'] }, Job  ],
-     # Some form of Command Job
+#     # Some form of Command Job
      [ { 'worker' => @id, 'cmd' => nil }, Command , Command ],
     ]
 
@@ -46,16 +51,13 @@ class Firts::Worker
     :dead
   end
 
-  def drb_init
-    DRb.start_service
-  end
-
   def my_pid_file
     "#{@name}.pid"
   end
 
+  # Connect to TupleSpace and turn on a heart beat to keep us alive in there
   def connect opts
-    @ts = Utils::find_tuplespace opts
+    @ts = find_tuplespace opts
     puts "#{@name} connected to #{@ts.to_s}"
     t = Utils::repeat_every(@heartbeat_refresh) do
       begin
@@ -70,11 +72,11 @@ class Firts::Worker
     end
   end
 
-  # # Let others know we're around
+  # Let others know we're around
   def heartbeat
     me = WORKER_TEMPLATE.dup
     me['name'] = id
-    @heartbeat_entry ||= @ts.write(me, @heartbeat_refresh + 10)
+    @heartbeat_entry ||= write(me, @heartbeat_refresh + 10)
     @heartbeat_entry.renew(@heartbeat_refresh) unless @heartbeat_entry.canceled?
   end
 
@@ -110,27 +112,11 @@ class Firts::Worker
     !stop.nil?
   end
 
-  def read template, timeout=0, rescue_me=true
-    @ts.read(template, timeout)
-  rescue Exception => e
-    raise e unless rescue_me
-  end
-
-  def take template, timeout=0, rescue_me=true
-    @ts.take(template, timeout)
-  rescue TypeError => e
-    puts "Bad format in JobSpace"
-    puts e
-    puts e.backtrace
-  rescue Exception => e
-    raise e unless rescue_me
-  end
 
   def start_a_job
     get_job do |job|
-      @threads = []
       @current_job = job
-      run_job @current_job
+      @threads << run_job(job)
     end
   end
 
@@ -151,29 +137,32 @@ class Firts::Worker
 
   def run_job job
     return run_cmd job if job.respond_to? :run_cmd
-    puts "Err: Job started before processing #{job.id}" if job_stopped? job.id
-    @threads << Thread.new do |t|
+    puts "Err: Job stoped before processing #{job.id}" if job_stopped? job.id
+    job_thread = Thread.new do |t|
       begin
         Timeout::timeout(@job_exec_timeout) do
-          puts "#{name}: Run #{@current_job.id}"
-          job.run_proc
+          puts "#{name}: Run #{job.id}"
+          Job::run job
         end
       rescue Timeout::Error
-          puts "#{name}: Job timeout #{@current_job.id}"
-          @current.job.result = 'Timeout'
+          puts "#{name}: Job timeout #{job.id}"
+          job.result = 'Timeout'
+      ensure
+          @current_job = nil
+          result = {
+            :began => job.begin,
+            :end => job.end,
+            :worker => name,
+            :result => job.result
+          }
+          job_done job, result
+          @completed_jobs << job
       end
-      result = {
-        :began => job.run_begin,
-        :end => job.run_end,
-        :worker => name,
-        :result => job.result
-      }
-      job_done job, result
-      @completed_jobs << @current_job
-      @current_job = nil
     end
+    job_thread
   end
 
+  # Rotate through selectors and return one to use
   def selector
     s = @selectors.pop
     @selectors.unshift s
@@ -193,17 +182,14 @@ class Firts::Worker
       sproc_meth = sproc.respond_to?(:process) ? :process : :call
       job = sproc.send sproc_meth, job
 
-      # Invoke the job load
-      clazz_meth = clazz.respond_to?(:load) ? :load : :call
-      job = clazz.send clazz_meth, job
-
-      yield job
-    rescue Rinda::RequestExpiredError
+      yield job['job']
+    rescue Rinda::RequestExpiredError => e
       # TODO use wait time in take?
       sleep @job_search_timeout
     end
   end
 
+  # Write job completion to TS
   def job_done job, results
     puts "#{name}: Done #{job.id}"
     jc = Job::COMPLETE_TEMPLATE.dup

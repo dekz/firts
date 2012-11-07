@@ -3,18 +3,18 @@ require 'rinda/ring'
 require 'utils'
 require 'job'
 require 'worker'
+require 'network'
 
 # Avengers Ahoy!
 class Taskmaster
+  include Network
+  include Network::Reader
+  include Network::Writer
   attr_accessor :ts
   def initialize(opts = {})
     drb_init
-    @ts = Utils::find_tuplespace opts
+    @ts = find_tuplespace opts
     raise "Unable to find TupleSpace" unless @ts
-  end
-
-  def drb_init
-    DRb.start_service
   end
 
   ##
@@ -55,6 +55,8 @@ class Taskmaster
     end
   end
 
+  # Specifies a job, how many times to run the job and optional worker
+  # specified to run the job.
   def task_list
     tasks = Struct.new(:num, :job, :worker).new
     yield tasks
@@ -71,41 +73,29 @@ class Taskmaster
   end
 
   def publish_job job, worker=nil
-    require 'sourcify'
-    block_string = job.run_task['proc'].to_source
+    jt = Job::JOB_TEMPLATE.dup
+    jt['job'] = job
 
-    jt = Job::START_TEMPLATE.dup
-    jt['id'] = job.id
-    jt['run'] = {
-      'proc' => block_string,
-      'args' => job.run_task['args']
-    }
+    jt = { 'worker' => worker, 'job' => jt } if worker
 
-    if worker
-      jt = { 'worker' => worker, 'job' => jt }
-    end
-    @ts.write jt
+    write jt
   end
 
   def receive_result job, timeout
     jc = Job::COMPLETE_TEMPLATE.dup
     jc['id'] = job.id
-    job = @ts.take(jc, timeout)
+    job = take jc, timeout
   end
 
   def clear_jobs
     stopped = []
-    st = Job::STOP_TEMPLATE
-    begin
-      stop = @ts.take(st, 0) rescue nil
-      stopped << stop
-    end while !stop.nil?
-
-    jt = Job::START_TEMPLATE
-    begin
-      stop = @ts.take(jt, 0) rescue nil
-      stopped << stop
-    end while !stop.nil?
+    temps = [ Job::JOB_TEMPLATE, Job::STOP_TEMPLATE, Job::START_TEMPLATE  ]
+    temps.each do |t|
+      begin
+        stop = take(t, 0, true)
+        (stopped << stop) if stop
+      end while !stop.nil?
+    end
     stopped
   end
 
@@ -121,7 +111,7 @@ class Taskmaster
     completed = nil
     num.times do
       jt = Job::COMPLETE_TEMPLATE
-      job =  @ts.take(jt, timeout) rescue nil
+      job =  take(jt, timeout, true)
       return completed unless job
       completed ||= []
       completed << job
@@ -131,6 +121,6 @@ class Taskmaster
 
   def workers
     wt = Firts::Worker::WORKER_TEMPLATE
-    @ts.read_all(wt) rescue nil
+    read_all(wt)
   end
 end

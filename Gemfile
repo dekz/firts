@@ -1,6 +1,9 @@
 source "http://rubygems.org"
 gem 'sourcify'
 gem 'thor'
+gem 'rake'
+gem 'rspec'
+gem 'jruby-openssl' if RUBY_PLATFORM == 'java'
 
 group :development do
   gem "shoulda", ">= 0"
