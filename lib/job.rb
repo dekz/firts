@@ -8,71 +8,51 @@ class Job
     'run' => nil,
   }
 
+  JOB_TEMPLATE = { 'type' => :job, 'job' => nil }
   STOP_TEMPLATE = { 'job' => :stop, 'id' => nil }
   COMPLETE_TEMPLATE = { 'job' => :complete, 'id' => nil, 'result' => nil }
-  attr_accessor :id, :result, :run_task
-  attr_reader :run_begin, :run_end, :executed, :stopped
-  def initialize id, run_task
-    @id = id
-    @run_task = run_task || {}
-    @result = nil
-    @executed = false
-    @stopped = false
-  end
 
-  def ==(j)
-    return j.id == id if self.class == j.class
-    super
+  # Don't dump this object, but make the proc accessible to be ran remotely
+  include DRb::DRbUndumped
+  attr_accessor :id, :proc, :args, :result, :begin, :end
+  def self.job *args, &block
+    require 'sourcify'
+    a = self.new
+    a.proc = block.to_source
+    a.args = *args
+    a.id = Utils.random_str
+    a
   end
+  def self.create *args, &block; self.job(*args, &block); end
 
-  def self.load job
-    Job.new job['id'], job['run']
-  end
-
-  def run_proc
-    return if @run_task.nil?
-    prc = eval_proc
-    args = grab_args
-    if block_given?
-      yield args, prc
-    else
-      exec_proc args, prc
-    end
-    @executed = true
-    @result
-  end
-
-  def exec_proc args, prc
-    @run_begin = Time.now
-    begin
-      @result = prc.call *args
-    rescue NameError => e
-      puts e
-    rescue Exception => e
-      puts e
-    end
-    @run_end = Time.now
-    @result
-  end
-
-  def eval_proc
-    eval @run_task['proc'] 
-  end
-
-  def self.create args={}
-    args['id'] ||= Utils.random_str
-    job = self.load(args)
-    yield job if block_given?
-    job
-  end
-
-  def grab_args
+  # Grab args out of DRbObjects if required
+  def self.grab_args job
     args = []
-    if @run_task['args'].class == DRb::DRbObject
-      @run_task['args'].each { |t| args << t }
+    if job.args.class == DRb::DRbObject
+      job.args.each { |t| args << t } if job.args.respond_to? :each
     else
-      args = *@run_task['args']
+      args = *job.args
     end
     args
+  end
+
+  # Run the Proc passing in the args to the proc
+  def self.run job
+    prc = eval job.proc
+    args = grab_args job
+    job.begin = Time.now
+    begin
+      job.result = prc.call *args
+    rescue Exception => e
+      puts e
+    rescue NameError => e
+      puts e
+    end
+    job.end = Time.now
+  end
+
+  # Execute locally to test proc and args
+  def dry_run
+    Job::run self
   end
 end
