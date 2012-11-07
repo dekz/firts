@@ -41,12 +41,15 @@ class Job
     prc = eval job.proc
     args = grab_args job
     job.begin = Time.now
-    begin
-      job.result = prc.call *args
-    rescue Exception => e
-      puts e
-    rescue NameError => e
-      puts e
+    obj = Object.new
+    obj.instance_eval do
+      begin
+        job.result = prc.call *args
+      rescue Exception => e
+        puts e
+      rescue NameError => e
+        puts e
+      end
     end
     job.end = Time.now
   end
