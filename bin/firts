@@ -12,11 +12,13 @@ class FirtsApp < Thor
   method_option :num, :type => :numeric, :aliases => '-n', :desc => 'Number of workers'
   method_option :num_wr, :type => :numeric, :aliases => '-r', :desc => 'Number of worker runners'
   method_option :daemonize, :type => :string, :aliases => '-d', :desc => 'Daemonize the worker runners'
+  method_option :timeout, :type => :numeric, :desc => 'MAX timeout in seconds for a job to run for'
   def worker(name=nil)
     opts = options.dup
     opts[:server] = options[:ts] if options[:ts]
     opts[:worker_count] = options[:num] || 1
     opts[:worker_runners] = options[:num_wr] || 1
+    opts[:job_exec_timeout] = options[:timeout]
     opts[:name] = name unless name.nil?
     if opts[:daemonize]
       # FORK DAEMONIZE
@@ -56,9 +58,22 @@ class FirtsApp < Thor
     require 'irb'
     opts = options.dup
     opts[:server] = options[:ts] if options[:ts]
+    # Setup an IRB object
     $tm = Taskmaster.new opts
+    obj = Object.new
+    obj.instance_eval do
+      def job(*args, &block); return unless block_given?; Job::create(*args, &block); end
+      def tm; $tm; end
+      def workers; $tm.workers; end
+      def inspect; 'Taskmaster'; end
+      def to_s; 'Taskmaster'; end
+    end
     ARGV.clear
-    ::IRB.start
+    IRB.setup nil
+    irb = IRB::Irb.new(IRB::WorkSpace.new(obj))
+    IRB.conf[:MAIN_CONTEXT] = irb.context
+    require 'irb/ext/multi-irb'
+    ::IRB.irb nil, obj
   end
 
   desc 'watcher', 'Start a watcher'
