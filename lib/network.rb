@@ -32,23 +32,20 @@ module Network
 
     def read template, timeout=0, rescue_me=true
       @ts.read(template, timeout)
-    rescue Rinda::RequestExpiredError => e
     rescue Exception => e
-      puts e if rescue_me
+      puts e unless e.class == Rinda::RequestExpiredError
       raise e unless rescue_me
     end
 
     def read_all template, timeout=0, rescue_me=true
       @ts.read_all(template)
-    rescue Rinda::RequestExpiredError => e
     rescue Exception => e
-      puts e if rescue_me
+      puts e unless e.class == Rinda::RequestExpiredError
       raise e unless rescue_me
     end
 
     def take template, timeout=0, rescue_me=true
       @ts.take(template, timeout)
-    rescue Rinda::RequestExpiredError => e
     rescue TypeError => e
       puts "Bad format in JobSpace"
       puts e
