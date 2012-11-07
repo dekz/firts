@@ -3,7 +3,7 @@ module Network
 
   def drb_init
     require 'socket'
-    ip = Socket.ip_address_list.detect{|intf| intf.ipv4? and !intf.ipv4_loopback? and !intf.ipv4_multicast? and !intf.ipv4_private?}
+    ip = Socket.ip_address_list.detect{|intf| intf.ipv4? and !intf.ipv4_loopback? and !intf.ipv4_multicast? }
     raise "IPV4 only supported" unless ip.ip? and ip.ipv4?
     ip = ip.ip_address || ""
     DRb.start_service("druby://#{ip}:0")
@@ -32,6 +32,7 @@ module Network
 
     def read template, timeout=0, rescue_me=true
       @ts.read(template, timeout)
+    rescue Rinda::RequestExpiredError => e
     rescue Exception => e
       puts e if rescue_me
       raise e unless rescue_me
@@ -39,6 +40,7 @@ module Network
 
     def read_all template, timeout=0, rescue_me=true
       @ts.read_all(template)
+    rescue Rinda::RequestExpiredError => e
     rescue Exception => e
       puts e if rescue_me
       raise e unless rescue_me
@@ -46,6 +48,7 @@ module Network
 
     def take template, timeout=0, rescue_me=true
       @ts.take(template, timeout)
+    rescue Rinda::RequestExpiredError => e
     rescue TypeError => e
       puts "Bad format in JobSpace"
       puts e
