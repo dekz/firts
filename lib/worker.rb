@@ -62,7 +62,6 @@ class Firts::Worker
       begin
         heartbeat
       rescue Exception => e
-        puts e
         @heartbeat_entry = nil
         @running = false
         cleanup rescue nil
