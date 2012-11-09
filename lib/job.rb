@@ -16,10 +16,16 @@ class Job
   include DRb::DRbUndumped
   attr_accessor :id, :proc, :args, :result, :begin, :end
   def self.job *args, &block
-    require 'sourcify'
     a = self.new
-    a.proc = block.to_source
-    a.args = *args
+    if block_given?
+      require 'sourcify'
+      a.proc = block.to_source
+      a.args = *args
+    else
+      args, source = *args
+      a.args = *args
+      a.proc = source
+    end
     a.id = Utils.random_str
     a
   end
