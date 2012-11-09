@@ -29,7 +29,10 @@ class Job
     a.id = Utils.random_str
     a
   end
-  def self.create *args, &block; self.job(*args, &block); end
+
+  class << self
+    alias :create :job
+  end
 
   # Grab args out of DRbObjects if required
   def self.grab_args job
@@ -65,6 +68,7 @@ class Job
     Job::run self
   end
 
+  # Simple dup of a job, creating a new job with a new id
   def dup
     a = self.class.new
     a.args = args.map { |arg| arg.dup }
