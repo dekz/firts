@@ -64,4 +64,12 @@ class Job
   def dry_run
     Job::run self
   end
+
+  def dup
+    a = self.class.new
+    a.args = args.map { |arg| arg.dup }
+    a.proc = self.proc.dup
+    a.id = Utils.random_str
+    a
+  end
 end
