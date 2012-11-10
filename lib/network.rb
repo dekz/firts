@@ -11,7 +11,10 @@ module Network
       ip = ""
     end
     DRb.start_service("druby://#{ip}:0")
-    puts DRb.uri
+  end
+
+  def drb_close
+    DRb.stop_service
   end
 
   def find_tuplespace opts
@@ -55,7 +58,7 @@ module Network
       puts e
       puts e.backtrace
     rescue Exception => e
-      puts e if rescue_me
+      puts e unless e.class == Rinda::RequestExpiredError
       raise e unless rescue_me
     end
 

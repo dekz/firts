@@ -89,7 +89,7 @@ class Taskmaster
 
   def clear_jobs
     stopped = []
-    temps = [ Job::JOB_TEMPLATE, Job::STOP_TEMPLATE, Job::START_TEMPLATE  ]
+    temps = [ Job::JOB_TEMPLATE, Job::STOP_TEMPLATE ]
     temps.each do |t|
       begin
         stop = take(t, 0, true)
@@ -122,5 +122,8 @@ class Taskmaster
   def workers
     wt = Firts::Worker::WORKER_TEMPLATE
     read_all(wt)
+  end
+  def close
+    drb_close
   end
 end
