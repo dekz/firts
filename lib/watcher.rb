@@ -15,7 +15,6 @@ class Watcher
     @selectors = [
       Firts::Worker::WORKER_TEMPLATE,
       Job::JOB_TEMPLATE,
-      Job::START_TEMPLATE,
       Job::STOP_TEMPLATE,
       Job::COMPLETE_TEMPLATE,
       { 'worker' => nil, 'job' => nil },

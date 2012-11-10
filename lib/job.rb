@@ -2,11 +2,6 @@ require 'utils'
 class JobExists < Exception; end
 
 class Job
-  START_TEMPLATE = {
-    'job' => :start,
-    'id' => nil,
-    'run' => nil,
-  }
 
   JOB_TEMPLATE = { 'type' => :job, 'job' => nil }
   STOP_TEMPLATE = { 'job' => :stop, 'id' => nil }
