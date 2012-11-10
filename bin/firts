@@ -55,25 +55,34 @@ class FirtsApp < Thor
   desc 'taskmaster [CONFIG]', 'Start a taskmaster'
   method_option :ts, :type => :string, :aliases => '-t', :desc => 'TupleSpace location'
   def taskmaster(config={})
-    require 'irb'
     opts = options.dup
     opts[:server] = options[:ts] if options[:ts]
     # Setup an IRB object
-    $tm = Taskmaster.new opts
-    obj = Object.new
-    obj.instance_eval do
-      def job(*args, &block); return unless block_given?; Job::create(*args, &block); end
-      def tm; $tm; end
-      def workers; $tm.workers; end
-      def inspect; 'Taskmaster'; end
-      def to_s; 'Taskmaster'; end
+    t = Thread.new do
+      $tm = Taskmaster.new opts
+      obj = Object.new
+      obj.instance_eval do
+        def job(*args, &block); Job::create(*args, &block); end
+        def tm; $tm; end
+        def method_missing(*args); method, args = *args; $tm.send(method.to_sym, *args); end
+        def inspect; 'Taskmaster'; end
+        def to_s; 'Taskmaster'; end
+      end
+      begin
+        require 'irb'
+        ARGV.clear
+        IRB.setup nil
+        irb = IRB::Irb.new(IRB::WorkSpace.new(obj))
+        IRB.conf[:MAIN_CONTEXT] = irb.context
+        require 'irb/ext/multi-irb'
+        ::IRB.irb nil, obj
+      ensure
+        # This is to get around the unknown issue of IRB not exiting properly with TM
+        $tm.close
+        exit 0
+      end
     end
-    ARGV.clear
-    IRB.setup nil
-    irb = IRB::Irb.new(IRB::WorkSpace.new(obj))
-    IRB.conf[:MAIN_CONTEXT] = irb.context
-    require 'irb/ext/multi-irb'
-    ::IRB.irb nil, obj
+    t.join
   end
 
   desc 'watcher', 'Start a watcher'
