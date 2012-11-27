@@ -93,6 +93,7 @@ class Firts::Worker
     @heartbeat_entry.cancel if @heartbeat_entry
   ensure
     File.delete(my_pid_file)
+    drb_close
   end
 
 
