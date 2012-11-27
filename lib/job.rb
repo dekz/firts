@@ -42,12 +42,12 @@ class Job
 
   # Run the Proc passing in the args to the proc
   def self.run job
-    prc = eval job.proc
-    args = grab_args job
     job.begin = Time.now
     obj = Object.new
     obj.instance_eval do
       begin
+        prc = eval job.proc
+        args = Job::grab_args job
         job.result = prc.call *args
       rescue Exception => e
         puts e
