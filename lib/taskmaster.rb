@@ -4,6 +4,7 @@ require 'utils'
 require 'job'
 require 'worker'
 require 'network'
+require 'logger'
 
 # Avengers Ahoy!
 class Taskmaster
@@ -77,8 +78,18 @@ class Taskmaster
     jt['job'] = job
 
     jt = { 'worker' => worker, 'job' => jt } if worker
+    job.logger = logger unless job.logger
 
     write jt
+  end
+
+  def logger
+    @logger ||= Logger.new($stdout)
+    @logger
+  end
+
+  def logger=(log)
+    @logger = log
   end
 
   def receive_result job, timeout
