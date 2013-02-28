@@ -13,6 +13,7 @@ class Firts::Worker
   attr_accessor :ts, :running, :name, :id, :current_job, :selectors
 
   WORKER_TEMPLATE = { 'name' => String, 'type' => :worker }
+  Logger = nil
   def initialize(opts = {})
     drb_init
     @id = opts[:name] || Utils.random_str
@@ -42,6 +43,7 @@ class Firts::Worker
      [ { 'worker' => @id, 'cmd' => nil }, Command , Command ],
     ]
 
+    @opts = opts
     connect opts
   end
 
@@ -141,10 +143,11 @@ class Firts::Worker
       begin
         Timeout::timeout(@job_exec_timeout) do
           puts "#{name}: Run #{job.id}"
+          Job::log job, "#{name}: Run"
           Job::run job
         end
       rescue Timeout::Error
-          puts "#{name}: Job timeout #{job.id}"
+          Job::log job, "timeout"
           job.result = 'Timeout'
       ensure
           @current_job = nil

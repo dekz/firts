@@ -13,6 +13,7 @@ class FirtsApp < Thor
   method_option :num_wr, :type => :numeric, :aliases => '-r', :desc => 'Number of worker runners'
   method_option :daemonize, :type => :string, :aliases => '-d', :desc => 'Daemonize the worker runners'
   method_option :timeout, :type => :numeric, :desc => 'MAX timeout in seconds for a job to run for'
+  method_option :log, :type => :string, :aliases => '-l', :desc => 'Where to write the log file'
   def worker(name=nil)
     opts = options.dup
     opts[:server] = options[:ts] if options[:ts]
@@ -54,6 +55,7 @@ class FirtsApp < Thor
 
   desc 'taskmaster [CONFIG]', 'Start a taskmaster'
   method_option :ts, :type => :string, :aliases => '-t', :desc => 'TupleSpace location'
+  method_option :log, :type => :string, :aliases => '-l', :desc => 'Where to write the log file, default is STDOUT'
   def taskmaster(config={})
     opts = options.dup
     opts[:server] = options[:ts] if options[:ts]

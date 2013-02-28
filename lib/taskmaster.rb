@@ -14,6 +14,8 @@ class Taskmaster
   attr_accessor :ts
   def initialize(opts = {})
     drb_init
+    @opts = opts
+    @opts[:log] ||= $stdout
     @ts = find_tuplespace opts
     raise "Unable to find TupleSpace" unless @ts
   end
@@ -84,7 +86,7 @@ class Taskmaster
   end
 
   def logger
-    @logger ||= Logger.new($stdout)
+    @logger ||= Logger.new(opts[:log])
     @logger
   end
 

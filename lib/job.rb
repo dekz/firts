@@ -49,7 +49,7 @@ class Job
   end
 
   # Run the Proc passing in the args to the proc
-  def self.run job
+  def self.run job, logger=@logger_local
     job.begin = Time.now
     job.running = true
     t = Thread.new do
@@ -57,7 +57,7 @@ class Job
       obj.instance_eval do
         begin
           prc = eval job.proc
-          args = Job::grab_args job
+          args = Job::grab_args(job)
           job.result = prc.call *args
         rescue Exception => e
           Job::handle_exception(job, e)
