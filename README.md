@@ -74,3 +74,7 @@ Note the useage of strings for keys, this is required in TupleSpace for hash con
 
 Copyright (c) 2012 Jacob Evans. See LICENSE.txt for
 further details.
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/dekz/firts/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
